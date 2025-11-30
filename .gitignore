@@ -1,0 +1,15 @@
+*.iws
+*.iml
+*.ipr
+*.log
+.DS_Store
+target/
+.settings
+.project
+.classpath
+.externalToolBuilders
+*.class
+*svn/
+.idea/
+*.jar
+~*
