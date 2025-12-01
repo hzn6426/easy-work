@@ -32,7 +32,7 @@ public class ThenFlowTest {
                 aNewParallelFlow(
                     work2,
                     work3
-                ).then(report -> work6)
+                ).withAutoShutDown(true).then(report -> work6)
             ).when(
                 WorkReportPredicate.COMPLETED,
                 work4,
@@ -73,6 +73,6 @@ public class ThenFlowTest {
     }
 
     public static void main(String[] args) {
-        testExceptionThen();
+        testThen();
     }
 }

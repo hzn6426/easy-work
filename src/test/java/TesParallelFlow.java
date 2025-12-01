@@ -17,10 +17,10 @@ public class TesParallelFlow {
         ParallelPrintMessageWork work1 = new ParallelPrintMessageWork("one");
         ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
         ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
-        ParallelFlow flow = aNewParallelFlow(work1, work2, work3);
-        ParallelWorkReport report = (ParallelWorkReport) aNewWorkFlowEngine().run(flow, new WorkContext());
-        report.getResult().forEach(System.out::println);
-        flow.shutdown();
+        ParallelWorkReport report = aNewParallelFlow(work1, work2, work3).withAutoShutDown(true).execute();
+        System.out.println(report.getResult(0, String.class));
+        System.out.println(report.getResult(1, String.class));
+        System.out.println(report.getResult(2, String.class));
     }
 
     private static void testParallel2() {
@@ -46,7 +46,19 @@ public class TesParallelFlow {
         }
     }
 
+    private static void testParallel4() {
+        ParallelPrintMessageWork work1 = new ParallelPrintMessageWork("one");
+        ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
+        ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
+        ExceptionPrintMessageWork exceptionWork = new ExceptionPrintMessageWork();
+        ParallelWorkReport report =  aNewParallelFlow(work1, exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_FAIL).execute();
+        List<Object> results = report.getResult();
+        for (int j = 0; j < results.size(); j++) {
+            System.out.println("the j:" + j + " the result:" + results.get(j));
+        }
+    }
+
     public static void main(String[] args) {
-        testParallel3();
+        testParallel1();
     }
 }

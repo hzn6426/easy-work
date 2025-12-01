@@ -19,6 +19,7 @@ import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkReport;
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
@@ -45,35 +46,43 @@ public class ChooseFlow extends AbstractWorkFlow {
     private final List<WhenWork>  whenWorks;
     private final List<Work> works;
 
-    @Override
-    public WorkReport execute(WorkContext context) {
-        try {
-            WorkReport report = doExecute(works, context);
-            for (WhenWork whenWork : whenWorks) {
-                if (whenWork.predicate.apply(report)) {
-                    if (Checker.BeNull(whenWork.getWork())) {
-                        report = aNewWorkReport();
-                    } else {
-                        report = doExecute(Lists.newArrayList(whenWork.getWork()), context);
-                    }
-                    break;
-                }
-            }
-
-            return doThenWork(report);
-        } finally {
-            doLastWork();
-        }
-    }
 
     @Override
     public WorkReport execute() {
-        return doDefaultExecute(this);
+        WorkContext context = getDefaultWorkContext();
+        WorkReport report = doExecute(works, context);
+        for (WhenWork whenWork : whenWorks) {
+            if (whenWork.predicate.apply(report)) {
+                if (Checker.BeNull(whenWork.getWork())) {
+                    report = aNewWorkReport();
+                } else {
+                    report = doExecute(Lists.newArrayList(whenWork.getWork()), context);
+                }
+                break;
+            }
+        }
+        return report;
     }
 
     private  ChooseFlow(List<Work> theWorks, List<WhenWork> whenWorks) {
         this.works = theWorks;
         this.whenWorks = whenWorks;
+    }
+
+    public ChooseFlow named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public ChooseFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
+    @Override
+    public ChooseFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
     }
 
     public static BuildSteps aNewChooseFlow(Work... works) {

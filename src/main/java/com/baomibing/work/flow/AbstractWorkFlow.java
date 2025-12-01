@@ -52,37 +52,31 @@ public abstract class AbstractWorkFlow implements WorkFlow, ThenStep, LastStep {
 
     public abstract WorkReport execute();
 
-
-    public AbstractWorkFlow named(String name) {
-        this.name = name;
-        return this;
-    }
-
-    public AbstractWorkFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
-        return this;
+    @Override
+    public WorkReport execute(WorkContext context) {
+        this.workContext = context;
+        try {
+            WorkReport report = execute();
+            return doThenWork(report);
+        } finally {
+            doLastWork();
+        }
     }
 
     @Override
-    public AbstractWorkFlow context(WorkContext workContext) {
-        this.workContext = workContext;
-        return this;
-    }
-
-    @Override
-    public WorkFlow then(Function<WorkReport, Work> fun) {
+    public AbstractWorkFlow then(Function<WorkReport, Work> fun) {
         this.thenFun = fun;
         return this;
     }
 
     @Override
-    public WorkFlow then(Work... works) {
+    public AbstractWorkFlow then(Work... works) {
          this.thenWorks.addAll(Arrays.asList(works));
          return this;
     }
 
     @Override
-    public WorkFlow lastly(Work... works) {
+    public AbstractWorkFlow lastly(Work... works) {
         this.lastWorks.addAll(Arrays.asList(works));
         return this;
     }
@@ -96,7 +90,7 @@ public abstract class AbstractWorkFlow implements WorkFlow, ThenStep, LastStep {
             thenWorks.add(flow);
         }
         if (Checker.BeNotEmpty(thenWorks)) {
-            return doExecute(Lists.newArrayList(flow), workContext);
+            return doExecute(thenWorks, workContext);
         }
         return workReport;
     }
@@ -167,12 +161,16 @@ public abstract class AbstractWorkFlow implements WorkFlow, ThenStep, LastStep {
         return false;
     }
 
-    protected WorkReport doDefaultExecute(WorkFlow workFlow) {
+    protected WorkContext getDefaultWorkContext() {
         WorkContext context = workContext;
         if (Checker.BeNull(context)) {
             context = new WorkContext();
         }
-        return workFlow.execute(context);
+        return context;
+    }
+
+    protected WorkReport doDefaultExecute(WorkFlow workFlow) {
+        return workFlow.execute(getDefaultWorkContext());
     }
 
     protected WorkReport doExecute(List<Work> works, WorkContext context) {

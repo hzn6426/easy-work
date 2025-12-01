@@ -21,6 +21,7 @@ import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.LoopWorkReport;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkReport;
 
 import java.util.Arrays;
@@ -49,38 +50,44 @@ public class LoopFlow extends AbstractWorkFlow {
         this.works = works;
     }
 
+    public LoopFlow named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public LoopFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
     @Override
-    public WorkReport execute(WorkContext context) {
-        try {
-            LoopWorkReport report = new LoopWorkReport();
-            report.setLength(works.size());
-            for (int i = 0; i < works.size(); i++) {
-                report.setIndex(i);
-                Work work = works.get(i);
-                if (Checker.BeNotNull(breakPredicate)) {
-                    if (breakPredicate.apply(report)) {
-                        break;
-                    }
+    public LoopFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
+    }
+
+    @Override
+    public LoopWorkReport execute() {
+        LoopWorkReport report = new LoopWorkReport();
+        report.setLength(works.size());
+        for (int i = 0; i < works.size(); i++) {
+            report.setIndex(i);
+            Work work = works.get(i);
+            if (Checker.BeNotNull(breakPredicate)) {
+                if (breakPredicate.apply(report)) {
+                    break;
                 }
-                if (Checker.BeNotNull(continuePredicate)) {
-                    if (continuePredicate.apply(report)) {
-                        continue;
-                    }
-                }
-                WorkReport defaultReport = doSingleWork(work, context);
-                report.with(defaultReport);
             }
-            return doThenWork(report);
-        } finally {
-            doLastWork();
+            if (Checker.BeNotNull(continuePredicate)) {
+                if (continuePredicate.apply(report)) {
+                    continue;
+                }
+            }
+            WorkReport defaultReport = doSingleWork(work, getDefaultWorkContext());
+            report.with(defaultReport);
         }
+        return report;
     }
-
-    @Override
-    public WorkReport execute() {
-        return doDefaultExecute(this);
-    }
-
 
 
     public static LoopFlow aNewLoopFlow(Work... works) {

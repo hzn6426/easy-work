@@ -16,11 +16,10 @@
 package com.baomibing.work.work;
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.flow.WorkFlow;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,15 +32,9 @@ public class ParallelWorkReport extends AbstractWorkReport {
 
     @Getter
     private final List<WorkReport> reports;
-    private WorkFlow work;
     protected WorkContext workContext;
     protected WorkStatus status;
     protected Throwable error;
-    protected Object result;
-
-    @Setter
-    private WorkFlow previous;
-
 
 
     public ParallelWorkReport() {
@@ -56,8 +49,12 @@ public class ParallelWorkReport extends AbstractWorkReport {
 
 
 
-    public void addAll(List<WorkReport> workReports) {
+    public void addAllReports(List<WorkReport> workReports) {
         reports.addAll(workReports);
+    }
+
+    public void addReport(WorkReport workReport) {
+        reports.add(workReport);
     }
 
 
@@ -99,6 +96,16 @@ public class ParallelWorkReport extends AbstractWorkReport {
     @Override
     public List<Object> getResult() {
         return getReports().stream().map(WorkReport::getResult).collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getResult(int index, Class<T> clazz) {
+        return (T) getResult().get(index);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Collection<T> getResultCollection(int index, Class<T> clazz) {
+        return (Collection<T>) getResult(index, clazz);
     }
 
 

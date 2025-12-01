@@ -19,6 +19,7 @@ import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.TimesPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkReport;
 /**
  * A repeat flow executes a work repeatedly until its report satisfies a given predicate.
@@ -31,29 +32,36 @@ public class RepeatFlow extends AbstractWorkFlow {
     private final Work work;
 
     @Override
-    public WorkReport execute(WorkContext context) {
-        WorkReport workReport;
-        try {
-            do {
-                workReport = doSingleWork(work, context);
-                if (beBreak(workReport)) {
-                    break;
-                }
-            } while (!workReportPredicate.apply(workReport));
-            return doThenWork(workReport);
-        } finally {
-            doLastWork();
-        }
-    }
-
-    @Override
     public WorkReport execute() {
-        return doDefaultExecute(this);
+        WorkReport workReport;
+        do {
+            workReport = doSingleWork(work, getDefaultWorkContext());
+            if (beBreak(workReport)) {
+                break;
+            }
+        } while (!workReportPredicate.apply(workReport));
+        return workReport;
     }
 
     private RepeatFlow(WorkReportPredicate predicate, Work theWork) {
         this.workReportPredicate = predicate;
         this.work = theWork;
+    }
+
+    public RepeatFlow named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public RepeatFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
+    @Override
+    public RepeatFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
     }
 
     public static BuildSteps aNewRepeatFlow(Work theWork) {

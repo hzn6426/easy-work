@@ -19,6 +19,7 @@ import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkReport;
 import com.google.common.collect.Lists;
 
@@ -45,29 +46,22 @@ public class ConditionalFlow extends AbstractWorkFlow {
     private final Work falseWork;
     private final List<Work> works;
 
-    @Override
-    public WorkReport execute(WorkContext context) {
-        try {
-            WorkReport report = doExecute(works, context);
-            boolean beTrue = predicate.apply(report);
-            if (beTrue) {
-                report = doExecute(Lists.newArrayList(trueWork), context);
-            } else {
-                if (Checker.BeNotNull(falseWork)) {
-                    report = doExecute(Lists.newArrayList(falseWork), context);
-                } else {
-                    report = aNewWorkReport();
-                }
-            }
-            return doThenWork(report);
-        } finally {
-            doLastWork();
-        }
-    }
 
     @Override
     public WorkReport execute() {
-        return doDefaultExecute(this);
+        WorkContext context = getDefaultWorkContext();
+        WorkReport report = doExecute(works, context);
+        boolean beTrue = predicate.apply(report);
+        if (beTrue) {
+            report = doExecute(Lists.newArrayList(trueWork), context);
+        } else {
+            if (Checker.BeNotNull(falseWork)) {
+                report = doExecute(Lists.newArrayList(falseWork), context);
+            } else {
+                report = aNewWorkReport();
+            }
+        }
+        return doThenWork(report);
     }
 
 
@@ -76,6 +70,22 @@ public class ConditionalFlow extends AbstractWorkFlow {
         this.trueWork = trueWork;
         this.falseWork = falseWork;
         this.works = theWorks;
+    }
+
+    public ConditionalFlow named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public ConditionalFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
+    @Override
+    public ConditionalFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
     }
 
 

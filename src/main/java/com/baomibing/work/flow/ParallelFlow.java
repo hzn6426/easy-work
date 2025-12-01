@@ -46,13 +46,14 @@ public class ParallelFlow extends AbstractWorkFlow {
 
     @SuppressWarnings("unchecked")
     @Override
-    public WorkReport execute(WorkContext context) {
+    public ParallelWorkReport execute() {
         List<Cffu<WorkReport>> cffArray  = new ArrayList<>();
+        WorkContext context = getDefaultWorkContext();
         try {
             for (Work work : works) {
                 cffArray.add(work2Cffu(work, context));
             }
-            WorkReport workReport;
+            ParallelWorkReport workReport;
             if (WorkExecutePolicy.FAST_SUCCESS == workExecutePolicy) {
                 Cffu<WorkReport> report = cffuFactory.anySuccessOf(cffArray.toArray(new Cffu[0]));
                 workReport = withResult(report, context);
@@ -68,36 +69,47 @@ public class ParallelFlow extends AbstractWorkFlow {
             } else if (WorkExecutePolicy.FAST_ALL_SUCCESS == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.allSuccessResultsOf(null, cffArray.toArray(new Cffu[0]));
                 workReport = withSuccessResult(reports, context);
-            }else {
+            } else {
                 throw new RuntimeException("Not support work execute policy:" + workExecutePolicy);
             }
-            return doThenWork(workReport);
+            return workReport;
         } finally {
             shutdown();
-            doLastWork();
         }
     }
 
-    @Override
-    public WorkReport execute() {
-        return doDefaultExecute(this);
+    public ParallelFlow named(String name) {
+        this.name = name;
+        return this;
     }
 
-    private WorkReport withResult(Cffu<WorkReport> cffu, WorkContext workContext) {
-        WorkReport workReport = new DefaultWorkReport();
+    public ParallelFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
+    @Override
+    public ParallelFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
+    }
+
+    private ParallelWorkReport withResult(Cffu<WorkReport> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
         try {
-            workReport = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            WorkReport report = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport.addReport(report);
         }  catch (Exception e) {
-            ((DefaultWorkReport)workReport).setError(e).setWorkContext(workContext).setResult(null).setStatus(FAILED);
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
         }
         return workReport;
     }
 
-    private WorkReport withResultExceptionally(MCffu<WorkReport, List<WorkReport>> cffu) {
+    private ParallelWorkReport withResultExceptionally(MCffu<WorkReport, List<WorkReport>> cffu) {
         ParallelWorkReport workReport = new ParallelWorkReport();
         try {
             List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            workReport.addAll(reports);
+            workReport.addAllReports(reports);
         }  catch (Exception e) {
             if (e instanceof WorkFlowException) {
                 throw (WorkFlowException) e;
@@ -117,14 +129,14 @@ public class ParallelFlow extends AbstractWorkFlow {
         return workReport;
     }
 
-    private WorkReport withSuccessResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+    private ParallelWorkReport withSuccessResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
         ParallelWorkReport workReport = new ParallelWorkReport();
         try {
             List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
             if (reports != null) {
                 List<WorkReport> successReports = reports.stream().filter(Checker::BeNotNull).collect(Collectors.toList());
                 if (Checker.BeNotEmpty(successReports)) {
-                    workReport.addAll(successReports);
+                    workReport.addAllReports(successReports);
                 }
             }
 
@@ -134,11 +146,11 @@ public class ParallelFlow extends AbstractWorkFlow {
         return workReport;
     }
 
-    private WorkReport withResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+    private ParallelWorkReport withResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
         ParallelWorkReport workReport = new ParallelWorkReport();
         try {
             List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            workReport.addAll(reports);
+            workReport.addAllReports(reports);
         }  catch (Exception e) {
             workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
         }
@@ -151,9 +163,9 @@ public class ParallelFlow extends AbstractWorkFlow {
     }
 
     private ThreadPoolExecutor initExecutor() {
-        final int corePoolSize = 50;
-        final int maxPoolSize = 200;
-        final int queueCapacity = 200;
+        final int corePoolSize = 10;
+        final int maxPoolSize = 20;
+        final int queueCapacity = 50;
         final int keepAliveTime = 30;
         final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueCapacity, true);
         return new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.SECONDS,

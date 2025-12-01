@@ -17,6 +17,7 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkReport;
 
 import java.util.ArrayList;
@@ -36,21 +37,27 @@ public class SequentialFlow extends AbstractWorkFlow {
     }
 
     @Override
-    public WorkReport execute(WorkContext context) {
-        try {
-            WorkReport report = doExecute(workList, context);
-            return doThenWork(report);
-        } finally {
-            doLastWork();
-        }
-    }
-
-    @Override
     public WorkReport execute() {
-        return doDefaultExecute(this);
+        return doExecute(workList, getDefaultWorkContext());
     }
 
     public static SequentialFlow aNewSequentialFlow(Work... works) {
         return new SequentialFlow(Arrays.asList(works));
+    }
+
+    public SequentialFlow named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public SequentialFlow policy(WorkExecutePolicy workExecutePolicy) {
+        this.workExecutePolicy = workExecutePolicy;
+        return this;
+    }
+
+    @Override
+    public SequentialFlow context(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
     }
 }
