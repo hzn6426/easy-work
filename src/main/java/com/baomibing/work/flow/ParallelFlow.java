@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.baomibing.work.work.WorkStatus.FAILED;
@@ -44,30 +45,29 @@ public class ParallelFlow extends AbstractWorkFlow {
     private boolean autoShutdown = false;
     private int timeoutInSeconds = 60;
 
-    @SuppressWarnings("unchecked")
     @Override
     public ParallelWorkReport execute() {
-        List<Cffu<WorkReport>> cffArray  = new ArrayList<>();
         WorkContext context = getDefaultWorkContext();
         try {
+            List<Supplier<WorkReport>> supplierList  = new ArrayList<>();
             for (Work work : works) {
-                cffArray.add(work2Cffu(work, context));
+                supplierList.add(() -> doSingleWork(work, context));
             }
             ParallelWorkReport workReport;
             if (WorkExecutePolicy.FAST_SUCCESS == workExecutePolicy) {
-                Cffu<WorkReport> report = cffuFactory.anySuccessOf(cffArray.toArray(new Cffu[0]));
+                Cffu<WorkReport> report = cffuFactory.iterableOps().mSupplyAnySuccessAsync(supplierList);
                 workReport = withResult(report, context);
             } else if (WorkExecutePolicy.FAST_FAIL == workExecutePolicy || WorkExecutePolicy.FAST_FAIL_EXCEPTION == workExecutePolicy) {
-                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.allResultsOf(cffArray.toArray(new Cffu[0]));
+                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
                 workReport = withResult(reports, context);
             } else if (WorkExecutePolicy.FAST_ALL == workExecutePolicy) {
-                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.allResultsOf(cffArray.toArray(new Cffu[0]));
+                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
                 workReport = withResult(reports, context);
             } else if (WorkExecutePolicy.FAST_EXCEPTION == workExecutePolicy) {
-                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.allResultsFailFastOf(cffArray.toArray(new Cffu[0]));
+                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyFailFastAsync(supplierList);
                 workReport = withResultExceptionally(reports);
             } else if (WorkExecutePolicy.FAST_ALL_SUCCESS == workExecutePolicy) {
-                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.allSuccessResultsOf(null, cffArray.toArray(new Cffu[0]));
+                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAllSuccessAsync(null, supplierList);
                 workReport = withSuccessResult(reports, context);
             } else {
                 throw new RuntimeException("Not support work execute policy:" + workExecutePolicy);
@@ -155,11 +155,6 @@ public class ParallelFlow extends AbstractWorkFlow {
             workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
         }
         return workReport;
-    }
-
-    private Cffu<WorkReport> work2Cffu(final Work work, final WorkContext context) {
-        return cffuFactory.supplyAsync(() -> doSingleWork(work, context));
-
     }
 
     private ThreadPoolExecutor initExecutor() {
