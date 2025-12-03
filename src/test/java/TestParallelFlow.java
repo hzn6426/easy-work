@@ -27,7 +27,7 @@ public class TestParallelFlow {
         ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
         ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
         ExceptionPrintMessageWork exceptionWork = new ExceptionPrintMessageWork();
-        WorkFlow flow = aNewParallelFlow(work1, work2, exceptionWork, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_EXCEPTION);
+        WorkFlow flow = aNewParallelFlow(work1,  exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_EXCEPTION);
         ParallelWorkReport report = (ParallelWorkReport) aNewWorkFlowEngine().run(flow, new WorkContext());
         report.getResult().forEach(System.out::println);
     }
@@ -50,7 +50,31 @@ public class TestParallelFlow {
         ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
         ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
         ExceptionPrintMessageWork exceptionWork = new ExceptionPrintMessageWork();
-        ParallelWorkReport report =  aNewParallelFlow(work1, exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_FAIL).execute();
+        ParallelWorkReport report =  aNewParallelFlow(work1, exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_SUCCESS).execute();
+        List<Object> results = report.getResult();
+        for (int j = 0; j < results.size(); j++) {
+            System.out.println("the j:" + j + " the result:" + results.get(j));
+        }
+    }
+
+    private static void testParallel5() {
+        ParallelPrintMessageWork work1 = new ParallelPrintMessageWork("one");
+        ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
+        ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
+        ExceptionPrintMessageWork exceptionWork = new ExceptionPrintMessageWork();
+        ParallelWorkReport report =  aNewParallelFlow(work1, exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_ALL_SUCCESS).execute();
+        List<Object> results = report.getResult();
+        for (int j = 0; j < results.size(); j++) {
+            System.out.println("the j:" + j + " the result:" + results.get(j));
+        }
+    }
+
+    private static void testParallel6() {
+        ParallelPrintMessageWork work1 = new ParallelPrintMessageWork("one");
+        ParallelPrintMessageWork work2 = new ParallelPrintMessageWork("two", 3);
+        ParallelPrintMessageWork work3 = new ParallelPrintMessageWork("three");
+        ExceptionPrintMessageWork exceptionWork = new ExceptionPrintMessageWork();
+        ParallelWorkReport report =  aNewParallelFlow(work1, exceptionWork, work2, work3).withAutoShutDown(true).policy(WorkExecutePolicy.FAST_ALL).execute();
         List<Object> results = report.getResult();
         for (int j = 0; j < results.size(); j++) {
             System.out.println("the j:" + j + " the result:" + results.get(j));
@@ -58,6 +82,11 @@ public class TestParallelFlow {
     }
 
     public static void main(String[] args) {
-        testParallel1();
+//        testParallel1();
+//        testParallel2();//FAST_EXCEPTION
+        testParallel3();//FAST_FAIL
+//        testParallel4();//FAST_SUCCESS
+//        testParallel5(); //FAST_ALL_SUCCESS
+//        testParallel6();// FAST_ALL
     }
 }
