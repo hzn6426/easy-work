@@ -51,15 +51,18 @@ public class ParallelFlow extends AbstractWorkFlow {
         try {
             List<Supplier<WorkReport>> supplierList  = new ArrayList<>();
             for (Work work : works) {
-                supplierList.add(() -> doSingleWork(work, context));
+                supplierList.add(() ->  doSingleWork(work, context));
             }
             ParallelWorkReport workReport;
             if (WorkExecutePolicy.FAST_SUCCESS == workExecutePolicy) {
                 Cffu<WorkReport> report = cffuFactory.iterableOps().mSupplyAnySuccessAsync(supplierList);
                 workReport = withResult(report, context);
-            } else if (WorkExecutePolicy.FAST_FAIL == workExecutePolicy || WorkExecutePolicy.FAST_FAIL_EXCEPTION == workExecutePolicy) {
+            } else if (WorkExecutePolicy.FAST_FAIL == workExecutePolicy ) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
-                workReport = withResult(reports, context);
+                workReport = withFailResult(reports, context);
+            } else if (WorkExecutePolicy.FAST_FAIL_EXCEPTION == workExecutePolicy) {
+                MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
+                workReport = withFailExceptionResult(reports, context);
             } else if (WorkExecutePolicy.FAST_ALL == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
                 workReport = withResult(reports, context);
@@ -134,12 +137,48 @@ public class ParallelFlow extends AbstractWorkFlow {
         try {
             List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
             if (reports != null) {
-                List<WorkReport> successReports = reports.stream().filter(Checker::BeNotNull).collect(Collectors.toList());
+                List<WorkReport> successReports = reports.stream().filter(r -> WorkStatus.COMPLETED.equals(r.getStatus())).collect(Collectors.toList());
                 if (Checker.BeNotEmpty(successReports)) {
                     workReport.addAllReports(successReports);
                 }
             }
 
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+    private ParallelWorkReport withFailExceptionResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
+        try {
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            if (reports != null) {
+                WorkReport report = reports.stream().filter(r -> WorkStatus.FAILED.equals(r.getStatus()) && Checker.BeNotNull(r.getError())).findFirst().orElse(null);
+                if (report != null) {
+                    workReport.addReport(report);
+                    return  workReport;
+                }
+                workReport.addAllReports(reports);
+            }
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+    private ParallelWorkReport withFailResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
+        try {
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            if (reports != null) {
+                WorkReport report = reports.stream().filter(r -> WorkStatus.FAILED.equals(r.getStatus())).findFirst().orElse(null);
+                if (report != null) {
+                    workReport.addReport(report);
+                    return  workReport;
+                }
+                workReport.addAllReports(reports);
+            }
         }  catch (Exception e) {
             workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
         }

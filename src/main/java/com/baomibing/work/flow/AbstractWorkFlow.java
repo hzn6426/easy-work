@@ -102,44 +102,51 @@ public abstract class AbstractWorkFlow implements WorkFlow, ThenStep, LastStep {
     }
 
     protected WorkReport doSingleWorkExceptionally(Work work, WorkContext context) {
-        WorkReport report = doSingleWork(work, context);
-        Throwable e = report.getError();
-        if (Checker.BeNotNull(e)) {
+        WorkReport workReport;
+        try {
+            workReport = doSingleWorkInternal(work, context);
+            return workReport;
+        } catch (Exception e) {
             if (e instanceof WorkFlowException) {
                 throw (WorkFlowException) e;
-            } else if (e instanceof RuntimeException) {
+            } else {
                 throw (RuntimeException) e;
             }
-            throw new WorkFlowException(report.getError());
         }
-        return report;
+
+    }
+
+    protected WorkReport doSingleWorkInternal(Work work, WorkContext context) {
+        WorkReport workReport = new DefaultWorkReport();
+        if (Checker.BeNull(context)) {
+            if (Checker.BeNotNull(workContext)) {
+                context = workContext;
+            } else {
+                context = new WorkContext();
+            }
+        } else {
+            if (Checker.BeNotNull(workContext)) {
+                context.copy(workContext);
+            }
+        }
+        if (work instanceof WorkFlow) {
+            WorkFlow workFlow = (WorkFlow) work;
+            workReport = workFlow.execute(context);
+        } else {
+            Object object = work.execute(context);
+            if (object instanceof WorkReport) {
+                workReport =  (WorkReport) object;
+            } else {
+                ((DefaultWorkReport) workReport).setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
+            }
+        }
+        return workReport;
     }
 
     protected WorkReport doSingleWork(Work work, WorkContext context) {
         WorkReport workReport = new DefaultWorkReport();
         try {
-            if (Checker.BeNull(context)) {
-                if (Checker.BeNotNull(workContext)) {
-                    context = workContext;
-                } else {
-                    context = new WorkContext();
-                }
-            } else {
-                if (Checker.BeNotNull(workContext)) {
-                    context.copy(workContext);
-                }
-            }
-            if (work instanceof WorkFlow) {
-                WorkFlow workFlow = (WorkFlow) work;
-                workReport = workFlow.execute(context);
-            } else {
-                Object object = work.execute(context);
-                if (object instanceof WorkReport) {
-                    workReport =  (WorkReport) object;
-                } else {
-                    ((DefaultWorkReport) workReport).setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
-                }
-            }
+            workReport = doSingleWorkInternal(work, context);
         } catch (Exception e) {
             ((DefaultWorkReport)workReport).setError(e).setWorkContext(context).setResult(null).setStatus(FAILED);
         }

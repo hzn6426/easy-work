@@ -22,15 +22,18 @@ public class ParallelPrintMessageWork implements Work {
 
     @Override
     public String execute(WorkContext workContext) {
-        System.out.println("executing " + message);
         if (Checker.BeNotNull(delay)) {
             try {
                 Thread.sleep(delay * 1000L);
+                System.out.println("executing " + message);
                 return message;
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        } else {
+            System.out.println("executing " + message);
         }
+
         return message;
 
     }
