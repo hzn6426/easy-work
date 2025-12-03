@@ -49,6 +49,4 @@ public interface ExecuteStep extends WorkFlow {
 
     WorkReport whenExecute(WorkReportPredicate predicate, Work trueWork, Work falseWork);
 
-
-
 }

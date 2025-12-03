@@ -61,7 +61,7 @@ public class ConditionalFlow extends AbstractWorkFlow {
                 report = aNewWorkReport();
             }
         }
-        return doThenWork(report);
+        return report;
     }
 
 

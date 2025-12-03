@@ -29,8 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zening (316279829@qq.com)
  */
 public class WorkContext {
-    @Setter @Getter
-    private WorkReport previousWorkReport;
     @Getter
     private final Map<String, Object> contextMap = new ConcurrentHashMap<>();
 
