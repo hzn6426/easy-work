@@ -16,8 +16,8 @@ public class PrintMessageWork implements Work {
     }
 
     @Override
-    public WorkReport execute(WorkContext workContext) {
+    public String execute(WorkContext workContext) {
         System.out.println(message);
-        return new DefaultWorkReport().setStatus(WorkStatus.COMPLETED).setWorkContext(workContext);
+        return message;
     }
 }

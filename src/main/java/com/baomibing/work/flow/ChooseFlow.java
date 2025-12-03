@@ -45,28 +45,44 @@ public class ChooseFlow extends AbstractWorkFlow {
 
     private final List<WhenWork>  whenWorks;
     private final List<Work> works;
-
+    private final Work otherWiseWork;
+    private boolean shortLogic = Boolean.TRUE;
 
     @Override
     public WorkReport execute() {
         WorkContext context = getDefaultWorkContext();
         WorkReport report = doExecute(works, context);
+        boolean beExecute = false;
         for (WhenWork whenWork : whenWorks) {
             if (whenWork.predicate.apply(report)) {
+                beExecute = true;
                 if (Checker.BeNull(whenWork.getWork())) {
                     report = aNewWorkReport();
                 } else {
                     report = doExecute(Lists.newArrayList(whenWork.getWork()), context);
                 }
-                break;
+                if (shortLogic) {
+                    break;
+                }
+            }
+        }
+        if (!beExecute) {
+            if (Checker.BeNotNull(otherWiseWork)) {
+                report = doExecute(Lists.newArrayList(otherWiseWork), context);
             }
         }
         return report;
     }
 
-    private  ChooseFlow(List<Work> theWorks, List<WhenWork> whenWorks) {
+    private  ChooseFlow(List<Work> theWorks, List<WhenWork> whenWorks, Work otherWiseWork) {
         this.works = theWorks;
         this.whenWorks = whenWorks;
+        this.otherWiseWork = otherWiseWork;
+    }
+
+    public ChooseFlow witShortLogic(boolean shortLogic) {
+        this.shortLogic = shortLogic;
+        return this;
     }
 
     public ChooseFlow named(String name) {
@@ -119,8 +135,8 @@ public class ChooseFlow extends AbstractWorkFlow {
 
         @Override
         public ChooseFlow otherWise(Work work) {
-            innerWhenWorks.add(new WhenWork(WorkReportPredicate.ALWAYS_TRUE, work));
-            return new ChooseFlow(innerWorks,innerWhenWorks);
+//            innerWhenWorks.add(new WhenWork(WorkReportPredicate.ALWAYS_TRUE, work));
+            return new ChooseFlow(innerWorks,innerWhenWorks, work);
         }
     }
 

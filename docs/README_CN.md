@@ -11,18 +11,21 @@
 
 ***
 
-📖 [English Documentation](../README.md) | 📖 中文文档
+📖 [English](../README.md) | 📖 中文
 
 ## Easy Work 是什么?
 
 Easy Work 是一个用于 Java 的工作流引擎。它提供了简洁的 API 和 构建模块，便于创建和运行可组合的工作流。
+
 在Easy Work中，工作单元由`Work`接口表示，工作流则由`WorkFlow`接口表示。Easy  Work 提供了 `WorkFlow` 接口的6种实现方式：
 
 <p align="center">
     <img src="../img/workflow.png" width="70%">
 </p>
 
-这些是使用Easy Work创建工作流时所需了解的唯一基本流程。你无需学习复杂的符号或概念，只需掌握几个易于理解的自然API即可。
+这些是使用Easy Work创建工作流时所需了解的唯一基本流程。
+
+你无需学习复杂的符号或概念，只需掌握几个易于理解的自然API即可。
 
 ## 如何使用 ？
 首先，让我们创建一个 Work:
@@ -37,9 +40,9 @@ public class PrintMessageWork implements Work {
     }
 
     @Override
-    public WorkReport execute(WorkContext workContext) {
+    public String execute(WorkContext workContext) {
         System.out.println(message);
-        return new DefaultWorkReport().setStatus(WorkStatus.COMPLETED).setWorkContext(workContext);
+        return message;
     }
 }
 ```
@@ -92,7 +95,7 @@ aNewWorkFlowEngine().run(flow, new WorkContext());
 
 你可以在 `test/java` 中 查看更多的测试用例。
 
-文档正在补充中...
+更详细的信息，请参考[wiki](docs/WIKI.md)
 
 <b>注意：此项目中 API 的部分命名方式 参考 <a href="https://github.com/j-easy/easy-flows">easy-flow</a></b>，一个非常简单易用的流程引擎。
 

@@ -20,9 +20,9 @@ public class BasicFlowTest {
 
         WorkContext workContext = new WorkContext();
         WorkFlow flow = aNewSequentialFlow(
-                aNewRepeatFlow(work1).times(3).named("print foo 3 times"),
+                aNewRepeatFlow(work1).times(3),
                 aNewConditionalFlow(
-                    aNewParallelFlow(work2,work3).named("print 'hello' and 'world' in parallel")
+                    aNewParallelFlow(work2,work3)
                 ).when(WorkReportPredicate.COMPLETED, work4, work5)
         );
         aNewWorkFlowEngine().run(flow, workContext);

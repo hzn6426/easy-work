@@ -23,6 +23,5 @@ import com.baomibing.work.context.WorkContext;
  */
 @FunctionalInterface
 public interface  Work  {
-
     Object execute(WorkContext context);
 }

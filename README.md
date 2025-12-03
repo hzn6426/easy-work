@@ -11,13 +11,14 @@
 
 ***
 
-📖 English Documentation | 📖 [中文文档](docs/README_CN.md)
+📖 English | 📖 [中文](docs/README_CN.md)
 
 ## What is Easy Work?
 
 Easy Work is a workflow engine for Java. It provides concise APIs and building blocks for creating and running composable workflows. 
 
 In Easy Work, work units are represented by the `Work` interface, while workflows are represented by the `WorkFlow` interface. 
+
 Easy Work provides six implementation methods for the WorkFlow interface:
 
 <p align="center">
@@ -25,9 +26,10 @@ Easy Work provides six implementation methods for the WorkFlow interface:
 </p>
 
 Those are the only basic flows you need to know to start creating workflows with Easy Work.
+
 You don't need to learn a complex notation or concepts, just a few natural APIs that are easy to think about.
 
-## How does it work?
+## How does it work ?
 First let's write some work:
 
 ```java
@@ -40,9 +42,9 @@ public class PrintMessageWork implements Work {
     }
 
     @Override
-    public WorkReport execute(WorkContext workContext) {
+    public String execute(WorkContext workContext) {
         System.out.println(message);
-        return new DefaultWorkReport().setStatus(WorkStatus.COMPLETED).setWorkContext(workContext);
+        return message;
     }
 }
 ```
@@ -95,7 +97,7 @@ This is not a very useful workflow, but just to give you an idea about how to wr
 
 You can view more test cases in 'test/java'.
 
-More documents are being supplemented.
+You can find more details about all of this in the [wiki](docs/WIKI.md)
 
 <b>Note: Some of the naming conventions for the APIs in this project refer to <a href="https://github.com/j-easy/easy-flows"> Easy flow</a></b>, a very simple and easy-to-use process engine.</b>
 

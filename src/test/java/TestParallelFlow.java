@@ -1,5 +1,4 @@
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.flow.ParallelFlow;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.work.ParallelWorkReport;
 import com.baomibing.work.work.WorkExecutePolicy;
@@ -11,7 +10,7 @@ import java.util.List;
 import static com.baomibing.work.enignee.WorkFlowEngineImpl.aNewWorkFlowEngine;
 import static com.baomibing.work.flow.ParallelFlow.aNewParallelFlow;
 
-public class TesParallelFlow {
+public class TestParallelFlow {
 
     private static void testParallel1() {
         ParallelPrintMessageWork work1 = new ParallelPrintMessageWork("one");

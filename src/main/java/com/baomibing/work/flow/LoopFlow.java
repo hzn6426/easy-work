@@ -85,6 +85,10 @@ public class LoopFlow extends AbstractWorkFlow {
             }
             WorkReport defaultReport = doSingleWork(work, getDefaultWorkContext());
             report.with(defaultReport);
+            if (beBreak(defaultReport)) {
+                break;
+            }
+
         }
         return report;
     }

@@ -1,6 +1,7 @@
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.work.WorkReport;
 import com.baomibing.work.work.WorkStatus;
 import work.DelayPrintMessageWork;
 import work.PrintMessageWork;
@@ -9,6 +10,7 @@ import static com.baomibing.work.enignee.WorkFlowEngineImpl.aNewWorkFlowEngine;
 import static com.baomibing.work.flow.ChooseFlow.aNewChooseFlow;
 import static com.baomibing.work.flow.ConditionalFlow.aNewConditionalFlow;
 import static com.baomibing.work.flow.ParallelFlow.aNewParallelFlow;
+import static com.baomibing.work.flow.RepeatFlow.aNewRepeatFlow;
 import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
 
 public class TestReportStepFlow {
@@ -149,9 +151,32 @@ public class TestReportStepFlow {
             }).thenExecute(z).context(new WorkContext());
     }
 
+    private static void testExampleExecuteStep() {
+        PrintMessageWork a = new PrintMessageWork("a");
+        PrintMessageWork b = new PrintMessageWork("b");
+        PrintMessageWork c = new PrintMessageWork("c");
+        PrintMessageWork d = new PrintMessageWork("d");
+        PrintMessageWork e = new PrintMessageWork("e");
+        PrintMessageWork f = new PrintMessageWork("f");
+        PrintMessageWork g = new PrintMessageWork("g");
+        PrintMessageWork h = new PrintMessageWork("h");
+        PrintMessageWork z = new PrintMessageWork("z");
+
+        WorkReport workReport = aNewSequentialFlow(aNewRepeatFlow(a).times(3))
+            .execute()
+            .thenExecute(aNewSequentialFlow(b,c,d))
+            .thenExecute(aNewParallelFlow(e,f).withAutoShutDown(true))
+            .thenExecute(report -> {
+                if (report.getStatus() == WorkStatus.COMPLETED) {
+                    return g;
+                }
+                return h;
+            }).thenExecute(z);
+    }
+
 
 
     public static void main(String[] args) {
-        testExecuteStep1();
+        testExampleExecuteStep();
     }
 }
