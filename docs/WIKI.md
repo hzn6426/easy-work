@@ -106,11 +106,11 @@ Failure or exception may occur during the execution of the flows, `Work Policy` 
 Corresponding policies can be set in the process definition through the `policy(WorkExecutePolicy)` method.
 
 There are several types of `WorkExecutePolicy` available:
-- `FAST_FAIL` When a work unit fails to execute (with a status of `FAILED`), stop the execution  and return the failure result
-- `FAST_FAIL_EXCEPTION` When a work unit fails to execute and the `error` field information is not `NULL`, stop the execution  and return the failure result. `default` policy
+- `FAST_FAIL` When a work unit fails to execute (with a status of `FAILED`), stop the execution  and return the failure result, return all result if not have any FAIL
+- `FAST_FAIL_EXCEPTION` When a work unit fails to execute and the `error` field information is not `NULL`, stop the execution  and return the failure result, return all result if not have any FAIL `default` policy
 - `FAST_SUCCESS` When a work unit is successfully executed (with the status of `Completed`), stop the execution  and return the result of the success.
 - `FAST_ALL` Execute all work units, regardless of any `exception` information
-- `FAST_ALL_SUCCESS` Execute all work units and return all successful results. Currently only effective for `ParalllelFlow`, equivalent to `FAST_ALL` for other flows.`
+- `FAST_ALL_SUCCESS` Execute all work units and return all successful results. 
 - `FAST_EXCEPTION` When a work unit executes an `exception`, stop the execution  and throw the `exception`.
 
 # Define a WorkFlow
@@ -156,7 +156,7 @@ A `RepeatFlow` is a flow of looping a given unit of work until the condition is 
 
 You can build conditional logic that meets the requirements by customizing the `WorkReportPredicte` interface.
 
-To create a `RepeatFlow`, you can refer to the following example(`test/java/TestRepeatWork`)：
+To create a `RepeatFlow`, you can refer to the following example(`test/java/TestRepeatFlow`)：
 ```java
 WorkFlow flow = aNewRepeatFlow(repeatWork).times(3);
 // 或者

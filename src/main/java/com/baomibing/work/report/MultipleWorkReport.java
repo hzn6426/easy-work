@@ -1,21 +1,8 @@
-/**
- * Copyright (c) 2025-2025, zening (316279828@qq.com).
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-package com.baomibing.work.work;
+package com.baomibing.work.report;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.util.Checker;
+import com.baomibing.work.work.WorkStatus;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -23,43 +10,56 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-/**
- * A default parallel execution result implementation
- *
- * @author zening (316279829@qq.com)
- */
-public class ParallelWorkReport extends AbstractWorkReport {
+
+public class MultipleWorkReport extends AbstractWorkReport {
 
     @Getter
     private final List<WorkReport> reports;
     protected WorkContext workContext;
     protected WorkStatus status;
     protected Throwable error;
+    protected String workName;
 
-
-    public ParallelWorkReport() {
-        this(new ArrayList<>());
+    public MultipleWorkReport() {
+        reports = new ArrayList<>();
     }
 
 
-
-    public ParallelWorkReport(List<WorkReport> reports) {
-        this.reports = reports;
+    public MultipleWorkReport setWorkContext(WorkContext workContext) {
+        this.workContext = workContext;
+        return this;
     }
 
+    public MultipleWorkReport setStatus(WorkStatus status) {
+        this.status = status;
+        return this;
+    }
 
+    public MultipleWorkReport setError(Throwable error) {
+        this.error = error;
+        return this;
+    }
 
-    public void addAllReports(List<WorkReport> workReports) {
+    public MultipleWorkReport setWorkName(String workName) {
+        this.workName = workName;
+        return this;
+    }
+
+    public MultipleWorkReport addAllReports(List<WorkReport> workReports) {
         reports.addAll(workReports);
+        return this;
     }
 
-    public void addReport(WorkReport workReport) {
+    public MultipleWorkReport addReport(WorkReport workReport) {
         reports.add(workReport);
+        return this;
     }
-
 
     @Override
     public WorkStatus getStatus() {
+        if (Checker.BeEmpty(reports) && Checker.BeNotNull(status)) {
+            return status;
+        }
         for (WorkReport report : reports) {
             if (report.getStatus().equals(WorkStatus.FAILED)) {
                 return WorkStatus.FAILED;
@@ -71,6 +71,9 @@ public class ParallelWorkReport extends AbstractWorkReport {
 
     @Override
     public Throwable getError() {
+        if (Checker.BeEmpty(reports) && Checker.BeNotNull(error)) {
+            return error;
+        }
         for (WorkReport report : reports) {
             Throwable error = report.getError();
             if (error != null) {
@@ -83,6 +86,9 @@ public class ParallelWorkReport extends AbstractWorkReport {
 
     @Override
     public WorkContext getWorkContext() {
+        if (Checker.BeEmpty(reports) && Checker.BeNotNull(workContext)) {
+            return workContext;
+        }
         WorkContext workContext = new WorkContext();
         for (WorkReport report : reports) {
             WorkContext partialContext = report.getWorkContext();
@@ -94,8 +100,13 @@ public class ParallelWorkReport extends AbstractWorkReport {
     }
 
     @Override
+    public String getWorkName() {
+        return workName;
+    }
+
+    @Override
     public List<Object> getResult() {
-        return getReports().stream().map(WorkReport::getResult).collect(Collectors.toList());
+        return reports.stream().map(WorkReport::getResult).collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")
@@ -108,19 +119,12 @@ public class ParallelWorkReport extends AbstractWorkReport {
         return (Collection<T>) getResult(index, clazz);
     }
 
+    protected void copy(MultipleWorkReport source) {
+        setStatus(source.getStatus());
+        setWorkName(source.getWorkName());
+        setWorkContext(source.getWorkContext());
+        setError(source.getError());
+        addAllReports(source.getReports());
 
-    public ParallelWorkReport setWorkContext(WorkContext workContext) {
-        this.workContext = workContext;
-        return this;
-    }
-
-    public ParallelWorkReport setStatus(WorkStatus status) {
-        this.status = status;
-        return this;
-    }
-
-    public ParallelWorkReport setError(Throwable error) {
-        this.error = error;
-        return this;
     }
 }

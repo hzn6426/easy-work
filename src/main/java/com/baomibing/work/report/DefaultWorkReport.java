@@ -13,10 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.baomibing.work.work;
+package com.baomibing.work.report;
 
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.work.WorkStatus;
+
 /**
  * A default execution result implementation
  *
@@ -28,6 +30,7 @@ public class DefaultWorkReport extends AbstractWorkReport {
     protected WorkStatus status;
     protected Throwable error;
     protected Object result;
+    protected String workName;
 
 
 
@@ -65,6 +68,11 @@ public class DefaultWorkReport extends AbstractWorkReport {
         return result;
     }
 
+    @Override
+    public String getWorkName() {
+        return workName;
+    }
+
     public DefaultWorkReport setWorkContext(WorkContext workContext) {
         this.workContext = workContext;
         return this;
@@ -82,6 +90,11 @@ public class DefaultWorkReport extends AbstractWorkReport {
 
     public DefaultWorkReport setResult(Object result) {
         this.result = result;
+        return this;
+    }
+
+    public DefaultWorkReport setWorkName(String workName) {
+        this.workName = workName;
         return this;
     }
 }

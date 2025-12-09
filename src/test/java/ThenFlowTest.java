@@ -27,17 +27,17 @@ public class ThenFlowTest {
         WorkFlow flow = aNewSequentialFlow(
             exceptionPrintMessageWork,
             aNewRepeatFlow(work1).times(3)
-        ).then(workReport ->
+        ).then(
             aNewConditionalFlow(
                 aNewParallelFlow(
                     work2,
                     work3
-                ).withAutoShutDown(true).then(report -> work6)
+                ).withAutoShutDown(true).then(work6)
             ).when(
                 WorkReportPredicate.COMPLETED,
                 work4,
                 work5
-            ).then(r -> work7)
+            ).then(work7)
         );
         aNewWorkFlowEngine().run(flow, workContext);
     }
@@ -57,17 +57,17 @@ public class ThenFlowTest {
             aNewRepeatFlow(work1).times(3),
             exceptionPrintMessageWork
         ).policy(WorkExecutePolicy.FAST_EXCEPTION)
-        .then(workReport ->
+        .then(
             aNewConditionalFlow(
                 aNewParallelFlow(
                     work2,
                     work3
-                ).then(report -> work6)
+                ).then(work6)
             ).when(
                 WorkReportPredicate.COMPLETED,
                 work4,
                 work5
-            ).then(r -> work7)
+            ).then(work7)
         );
         aNewWorkFlowEngine().run(flow, workContext);
     }

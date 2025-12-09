@@ -18,9 +18,16 @@ package com.baomibing.work.flow;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.TimesPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.report.RepeatWorkReport;
 import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkExecutePolicy;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.baomibing.work.report.RepeatWorkReport.aNewRepeatWorkReport;
+
 /**
  * A repeat flow executes a work repeatedly until its report satisfies a given predicate.
  *
@@ -32,20 +39,26 @@ public class RepeatFlow extends AbstractWorkFlow {
     private final Work work;
 
     @Override
-    public WorkReport execute() {
+    public RepeatWorkReport execute() {
+//        return execute(Strings.EMPTY);
         WorkReport workReport;
+        WorkContext context = getDefaultWorkContext();
+        List<WorkReport> reports = new ArrayList<>();
         do {
-            workReport = doSingleWork(work, getDefaultWorkContext());
+            workReport = doSingleWork(work, context);
+            reports.add(workReport);
             if (beBreak(workReport)) {
                 break;
             }
         } while (!workReportPredicate.apply(workReport));
-        return workReport;
+
+        traceReport(aNewRepeatWorkReport().setWorkName(name).addAllReports(reports));
+        return aNewRepeatWorkReport(getPolicyReport(reports, context));
     }
 
     private RepeatFlow(WorkReportPredicate predicate, Work theWork) {
         this.workReportPredicate = predicate;
-        this.work = theWork;
+        this.work = wrapNamedPointWork(theWork);
     }
 
     public RepeatFlow named(String name) {
@@ -61,6 +74,11 @@ public class RepeatFlow extends AbstractWorkFlow {
     @Override
     public RepeatFlow context(WorkContext workContext) {
         this.workContext = workContext;
+        return this;
+    }
+
+    public RepeatFlow trace(boolean beTrace) {
+        this.beTrace = beTrace;
         return this;
     }
 

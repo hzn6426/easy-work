@@ -17,7 +17,7 @@ package com.baomibing.work.enignee;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.WorkFlow;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 
 /**
  * Implements for workflow engine interface

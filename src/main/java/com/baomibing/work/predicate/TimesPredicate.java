@@ -16,7 +16,7 @@
 package com.baomibing.work.predicate;
 
 
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 
 import java.util.concurrent.atomic.AtomicInteger;
 /**

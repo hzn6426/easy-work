@@ -13,11 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.baomibing.work.work;
+package com.baomibing.work.report;
 
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.step.ExecuteStep;
+import com.baomibing.work.work.WorkStatus;
+
 /**
  * The result of the unit work.
  *
@@ -29,5 +31,5 @@ public interface WorkReport  extends ExecuteStep {
     Throwable getError();
     WorkContext getWorkContext();
     Object getResult();
-
+    String getWorkName();
 }

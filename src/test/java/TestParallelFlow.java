@@ -1,6 +1,6 @@
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.WorkFlow;
-import com.baomibing.work.work.ParallelWorkReport;
+import com.baomibing.work.report.ParallelWorkReport;
 import com.baomibing.work.work.WorkExecutePolicy;
 import work.ExceptionPrintMessageWork;
 import work.ParallelPrintMessageWork;

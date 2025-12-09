@@ -19,7 +19,7 @@ package com.baomibing.work.step;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;

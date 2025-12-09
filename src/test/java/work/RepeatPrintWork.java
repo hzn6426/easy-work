@@ -2,14 +2,14 @@ package work;
 
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.DefaultWorkReport;
+import com.baomibing.work.report.DefaultWorkReport;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkStatus;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.baomibing.work.work.DefaultWorkReport.aNewWorkReport;
+import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
 
 public class RepeatPrintWork implements Work {
 

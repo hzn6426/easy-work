@@ -16,7 +16,7 @@
 package com.baomibing.work.predicate;
 
 
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkStatus;
 /**
  * A predicate interface on work report.

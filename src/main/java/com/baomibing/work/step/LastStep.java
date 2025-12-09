@@ -26,5 +26,5 @@ import com.baomibing.work.work.Work;
  */
 public interface LastStep {
 
-    WorkFlow lastly(Work... work);
+    WorkFlow lastly(Work work);
 }

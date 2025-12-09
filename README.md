@@ -95,7 +95,7 @@ aNewWorkFlowEngine().run(flow, new WorkContext());
 
 This is not a very useful workflow, but just to give you an idea about how to write workflows with Easy Work.
 
-You can view more test cases in 'test/java'.
+You can view more test cases in `test/java`.
 
 You can find more details about all of this in the [wiki](docs/WIKI.md)
 

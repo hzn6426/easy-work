@@ -17,16 +17,17 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.report.ConditionalWorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkExecutePolicy;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.google.common.collect.Lists;
 
-import java.util.Arrays;
 import java.util.List;
 
-import static com.baomibing.work.work.DefaultWorkReport.aNewWorkReport;
+import static com.baomibing.work.report.ConditionalWorkReport.aNewConditionalWorkReport;
+import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
 
 /**
  * A conditional flow is defined by 4 artifacts:
@@ -44,32 +45,39 @@ public class ConditionalFlow extends AbstractWorkFlow {
     private final WorkReportPredicate predicate;
     private final Work trueWork;
     private final Work falseWork;
-    private final List<Work> works;
+    private final Work work;
 
 
     @Override
-    public WorkReport execute() {
+    public ConditionalWorkReport execute() {
         WorkContext context = getDefaultWorkContext();
-        WorkReport report = doExecute(works, context);
+
+        WorkReport report = doSingleWork(work, context);
+        traceReport(report);
+
+        List<WorkReport> reports = Lists.newArrayList();
+
+        WorkReport executeReport;
         boolean beTrue = predicate.apply(report);
         if (beTrue) {
-            report = doExecute(Lists.newArrayList(trueWork), context);
+            executeReport = doSingleWork(trueWork, context);
         } else {
             if (Checker.BeNotNull(falseWork)) {
-                report = doExecute(Lists.newArrayList(falseWork), context);
+                executeReport = doSingleWork(falseWork, context);
             } else {
-                report = aNewWorkReport();
+                executeReport = aNewWorkReport();
             }
         }
-        return report;
+        reports.add(executeReport);
+        traceReport(aNewConditionalWorkReport().setWorkName(name).addAllReports(reports));
+        return aNewConditionalWorkReport(getPolicyReport(reports, context));
     }
 
-
-    private ConditionalFlow(List<Work> theWorks, WorkReportPredicate thePredicate, Work trueWork, Work falseWork) {
+    private ConditionalFlow(Work theWork, WorkReportPredicate thePredicate, Work trueWork, Work falseWork) {
         this.predicate = thePredicate;
-        this.trueWork = trueWork;
-        this.falseWork = falseWork;
-        this.works = theWorks;
+        this.trueWork = wrapNamedPointWork(trueWork);
+        this.falseWork = wrapNamedPointWork(falseWork);
+        this.work = wrapNamedPointWork(theWork);
     }
 
     public ConditionalFlow named(String name) {
@@ -88,9 +96,14 @@ public class ConditionalFlow extends AbstractWorkFlow {
         return this;
     }
 
+    public ConditionalFlow trace(boolean beTrace) {
+        this.beTrace = beTrace;
+        return this;
+    }
 
-    public static BuildSteps aNewConditionalFlow(Work... works) {
-        return new BuildSteps(works);
+
+    public static BuildSteps aNewConditionalFlow(Work work) {
+        return new BuildSteps(work);
     }
 
 
@@ -102,21 +115,21 @@ public class ConditionalFlow extends AbstractWorkFlow {
     }
 
     public static class BuildSteps implements WhenWork {
-        private final List<Work> works;
+        private final Work work;
 
-        public BuildSteps(Work... theWorks) {
-            works = Arrays.asList(theWorks);
+        public BuildSteps(Work theWork) {
+            this.work = theWork;
         }
 
 
         @Override
         public ConditionalFlow when(WorkReportPredicate predicate, Work trueWork, Work falseWork) {
-            return new ConditionalFlow(works, predicate, trueWork, falseWork);
+            return new ConditionalFlow(work, predicate, trueWork, falseWork);
         }
 
         @Override
         public ConditionalFlow when(WorkReportPredicate predicate, Work trueWork) {
-            return new ConditionalFlow(works, predicate, trueWork, null);
+            return new ConditionalFlow(work, predicate, trueWork, null);
         }
     }
 

@@ -16,9 +16,7 @@
 package com.baomibing.work.context;
 
 import com.baomibing.work.util.Checker;
-import com.baomibing.work.work.WorkReport;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

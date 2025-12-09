@@ -17,8 +17,8 @@ package com.baomibing.work.predicate;
 
 
 import com.baomibing.work.util.Checker;
-import com.baomibing.work.work.LoopWorkReport;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.LoopIndexWorkReport;
+import com.baomibing.work.report.WorkReport;
 
 /**
  * A predicate implement for loop index
@@ -39,8 +39,8 @@ public class LoopIndexPredicate implements WorkReportPredicate {
 
     @Override
     public boolean apply(WorkReport workReport) {
-        if (Checker.BeNotNull(workReport) && workReport instanceof LoopWorkReport) {
-            LoopWorkReport loopWorkReport = (LoopWorkReport) workReport;
+        if (Checker.BeNotNull(workReport) && workReport instanceof LoopIndexWorkReport) {
+            LoopIndexWorkReport loopWorkReport = (LoopIndexWorkReport) workReport;
             return loopWorkReport.getIndex() == index;
         }
         return false;

@@ -17,8 +17,11 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.exception.WorkFlowException;
+import com.baomibing.work.report.ParallelWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.*;
+import com.google.common.collect.Lists;
 import io.foldright.cffu2.Cffu;
 import io.foldright.cffu2.CffuFactory;
 import io.foldright.cffu2.MCffu;
@@ -28,8 +31,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
+import static com.baomibing.work.report.ParallelWorkReport.aNewParallelWorkReport;
 import static com.baomibing.work.work.WorkStatus.FAILED;
 /**
  * A parallel flow executes a set of work units in parallel. A {@link ParallelFlow}
@@ -48,33 +51,35 @@ public class ParallelFlow extends AbstractWorkFlow {
     @Override
     public ParallelWorkReport execute() {
         WorkContext context = getDefaultWorkContext();
+        ParallelWorkReport workReport;
         try {
             List<Supplier<WorkReport>> supplierList  = new ArrayList<>();
-            for (Work work : works) {
-                supplierList.add(() ->  doSingleWork(work, context));
-            }
-            ParallelWorkReport workReport;
+
+            works.forEach(work -> supplierList.add(() ->  doSingleWork(work, context)));
+
             if (WorkExecutePolicy.FAST_SUCCESS == workExecutePolicy) {
                 Cffu<WorkReport> report = cffuFactory.iterableOps().mSupplyAnySuccessAsync(supplierList);
-                workReport = withResult(report, context);
+                workReport = withFastSuccessResult(report, context);
             } else if (WorkExecutePolicy.FAST_FAIL == workExecutePolicy ) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
-                workReport = withFailResult(reports, context);
+                workReport = withFastFailResult(reports, context);
             } else if (WorkExecutePolicy.FAST_FAIL_EXCEPTION == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
-                workReport = withFailExceptionResult(reports, context);
+                workReport = withFastFailExceptionResult(reports, context);
             } else if (WorkExecutePolicy.FAST_ALL == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAsync(supplierList);
-                workReport = withResult(reports, context);
+                workReport = withFastAllResult(reports, context);
             } else if (WorkExecutePolicy.FAST_EXCEPTION == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyFailFastAsync(supplierList);
-                workReport = withResultExceptionally(reports);
+                workReport = withFastExceptionallyResult(reports,  context);
             } else if (WorkExecutePolicy.FAST_ALL_SUCCESS == workExecutePolicy) {
                 MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAllSuccessAsync(null, supplierList);
-                workReport = withSuccessResult(reports, context);
+                workReport = withFastAllSuccessResult(reports, context);
             } else {
                 throw new RuntimeException("Not support work execute policy:" + workExecutePolicy);
             }
+            workReport.setWorkName(name);
+            traceReport(workReport);
             return workReport;
         } finally {
             shutdown();
@@ -97,104 +102,84 @@ public class ParallelFlow extends AbstractWorkFlow {
         return this;
     }
 
-    private ParallelWorkReport withResult(Cffu<WorkReport> cffu, WorkContext workContext) {
+    public ParallelFlow trace(boolean beTrace) {
+        this.beTrace = beTrace;
+        return this;
+    }
+
+    private ParallelWorkReport withFastFailResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
         ParallelWorkReport workReport = new ParallelWorkReport();
         try {
-            WorkReport report = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            workReport.addReport(report);
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport = aNewParallelWorkReport(withFastFailResult(reports, workContext));
         }  catch (Exception e) {
             workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
         }
         return workReport;
     }
 
-    private ParallelWorkReport withResultExceptionally(MCffu<WorkReport, List<WorkReport>> cffu) {
+    private ParallelWorkReport withFastFailExceptionResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
         ParallelWorkReport workReport = new ParallelWorkReport();
         try {
             List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            workReport.addAllReports(reports);
+            workReport = aNewParallelWorkReport(withFastFailExceptionResult(reports, workContext));
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+    private ParallelWorkReport withFastSuccessResult(Cffu<WorkReport> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
+        try {
+            WorkReport report = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport = aNewParallelWorkReport(withFastSuccessResult(Lists.newArrayList(report), workContext));
+
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+    private ParallelWorkReport withFastAllResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
+        try {
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport = aNewParallelWorkReport(withFastAllResult(reports, workContext));
+
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+    private ParallelWorkReport withFastAllSuccessResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport = new ParallelWorkReport();
+        try {
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport = aNewParallelWorkReport(withFastAllResult(reports, workContext));
+        }  catch (Exception e) {
+            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
+        }
+        return workReport;
+    }
+
+
+    private ParallelWorkReport withFastExceptionallyResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
+        ParallelWorkReport workReport;
+        try {
+            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
+            workReport = aNewParallelWorkReport(withFastExceptionallyResult(reports, workContext));
         }  catch (Exception e) {
             if (e instanceof WorkFlowException) {
                 throw (WorkFlowException) e;
             }
             throw (RuntimeException) e;
         }
-        if (Checker.BeNotNull(workReport.getError())) {
-            Throwable throwable = workReport.getError();
-            if (throwable instanceof WorkFlowException) {
-                throw (WorkFlowException) throwable;
-            }
-            if (throwable instanceof RuntimeException) {
-                throw (RuntimeException) throwable;
-            }
-            throw new WorkFlowException(workReport.getError());
-        }
         return workReport;
     }
 
-    private ParallelWorkReport withSuccessResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
-        ParallelWorkReport workReport = new ParallelWorkReport();
-        try {
-            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            if (reports != null) {
-                List<WorkReport> successReports = reports.stream().filter(r -> WorkStatus.COMPLETED.equals(r.getStatus())).collect(Collectors.toList());
-                if (Checker.BeNotEmpty(successReports)) {
-                    workReport.addAllReports(successReports);
-                }
-            }
 
-        }  catch (Exception e) {
-            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
-        }
-        return workReport;
-    }
-
-    private ParallelWorkReport withFailExceptionResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
-        ParallelWorkReport workReport = new ParallelWorkReport();
-        try {
-            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            if (reports != null) {
-                WorkReport report = reports.stream().filter(r -> WorkStatus.FAILED.equals(r.getStatus()) && Checker.BeNotNull(r.getError())).findFirst().orElse(null);
-                if (report != null) {
-                    workReport.addReport(report);
-                    return  workReport;
-                }
-                workReport.addAllReports(reports);
-            }
-        }  catch (Exception e) {
-            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
-        }
-        return workReport;
-    }
-
-    private ParallelWorkReport withFailResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
-        ParallelWorkReport workReport = new ParallelWorkReport();
-        try {
-            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            if (reports != null) {
-                WorkReport report = reports.stream().filter(r -> WorkStatus.FAILED.equals(r.getStatus())).findFirst().orElse(null);
-                if (report != null) {
-                    workReport.addReport(report);
-                    return  workReport;
-                }
-                workReport.addAllReports(reports);
-            }
-        }  catch (Exception e) {
-            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
-        }
-        return workReport;
-    }
-
-    private ParallelWorkReport withResult(MCffu<WorkReport, List<WorkReport>> cffu, WorkContext workContext) {
-        ParallelWorkReport workReport = new ParallelWorkReport();
-        try {
-            List<WorkReport> reports = cffu.join(timeoutInSeconds, TimeUnit.SECONDS);
-            workReport.addAllReports(reports);
-        }  catch (Exception e) {
-            workReport.setError(e).setWorkContext(workContext).setStatus(FAILED);
-        }
-        return workReport;
-    }
 
     private ThreadPoolExecutor initExecutor() {
         final int corePoolSize = 10;
@@ -207,7 +192,9 @@ public class ParallelFlow extends AbstractWorkFlow {
     }
 
     private ParallelFlow(List<Work> works) {
-        this.works.addAll(works);
+        for (Work work : works) {
+            this.works.add(wrapNamedPointWork(work));
+        }
         if (executor == null) {
             executor = initExecutor();
         }
