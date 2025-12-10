@@ -82,6 +82,7 @@ Work doSomeWork = context -> {
 PrintMessageWork work4 = new PrintMessageWork("ok");
 aNamePointWork(work4).named("work4");
 ```
+注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持。
 
 ## 流程结果
 流程执行后结果会被封装到 `WorkReport` 接口中，以下是`WorkReport` 接口:
@@ -369,7 +370,7 @@ after parallel
 work4
 after conditional
 ```
-你可以通过无限多个 `then` 方法来进行构建工作流（不建议），这些工作流会像 `SequentialWorkFlow` 那样顺序执行，执行策略仍满足对应工作流的 `policy` 策略
+你可以通过无限多个 `then` 方法来进行构建工作流（不建议），这些工作流会像 `SequentialWorkFlow` 那样顺序执行，返回结果策略仍满足对应工作流的 `policy` 策略
 
 ## LastStep
 `LastStep` 与 `finally` 类似，总会执行其中的工作单元，不管是否发生异常，接口定义如下:
@@ -458,7 +459,7 @@ WorkReport workReport = aNewSequentialFlow(work1, work2, work3).execute();
 通过 `getResult()` 方法获取对应 `Work` 的执行结果，通过 `getWorkName()` 方法获取对应 `Work` 的名称
 
 ## MultipleWorkReport
-当内置的 `WorkFlow` 返回结果时，该结果<b>继承</b> `MultipleWorkReport`，一个`MultipleWorkReport` 可能会有多个结果，都包含在 `reports` 属性中，其提供了简单的方法来根据索引获取对应结果并进行转化：
+当内置的 `WorkFlow` 返回 `WorkReport` 时，该 `WorkReport` <b>继承</b> `MultipleWorkReport`，一个`MultipleWorkReport` 会有多个结果，都包含在 `reports` 属性中，其提供了简单的方法来根据索引获取对应结果并进行转化：
 ```java
 public <T> T getResult(int index, Class<T> clazz) {
     return (T) getResult().get(index);
@@ -509,7 +510,7 @@ for (Map.Entry<String, WorkReport> entry : map.entrySet()) {
     WorkReport report = entry.getValue();
     System.out.println(report.getClass().getName());
 }
-
+//you can get the result of conditionalFlow
 Map<String, WorkReport> map2 =  conditionalFlow.getExecutedReportMap();
 for (Map.Entry<String, WorkReport> entry : map2.entrySet()) {
     System.out.println(entry.getKey());
