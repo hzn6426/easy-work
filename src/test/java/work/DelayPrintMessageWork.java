@@ -2,9 +2,9 @@ package work;
 
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.DefaultWorkReport;
+import com.baomibing.work.report.DefaultWorkReport;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkStatus;
 
 public class DelayPrintMessageWork implements Work {

@@ -1,5 +1,5 @@
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.flow.WorkFlow;
+import com.baomibing.work.flow.SequentialFlow;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import work.PrintMessageWork;
 
@@ -19,12 +19,14 @@ public class BasicFlowTest {
         PrintMessageWork work5 = new PrintMessageWork("nok");
 
         WorkContext workContext = new WorkContext();
-        WorkFlow flow = aNewSequentialFlow(
+        SequentialFlow flow = aNewSequentialFlow(
                 aNewRepeatFlow(work1).times(3),
                 aNewConditionalFlow(
                     aNewParallelFlow(work2,work3)
                 ).when(WorkReportPredicate.COMPLETED, work4, work5)
-        );
+        ).named("sequential");
         aNewWorkFlowEngine().run(flow, workContext);
+
+
     }
 }

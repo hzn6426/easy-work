@@ -7,7 +7,7 @@ import work.RepeatPrintWork;
 import static com.baomibing.work.enignee.WorkFlowEngineImpl.aNewWorkFlowEngine;
 import static com.baomibing.work.flow.RepeatFlow.aNewRepeatFlow;
 
-public class TestRepeatWork {
+public class TestRepeatFlow {
 
     public static void testRepeatTimes() {
         PrintMessageWork repeat = new PrintMessageWork("im repeat");

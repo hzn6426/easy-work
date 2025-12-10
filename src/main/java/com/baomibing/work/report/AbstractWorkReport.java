@@ -13,11 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.baomibing.work.work;
+package com.baomibing.work.report;
 
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.work.Work;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;

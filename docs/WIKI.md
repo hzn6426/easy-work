@@ -82,6 +82,20 @@ Work doSomeWork = context -> {
 };
 ```
 
+## The NamedPointWork 
+A class that decorates the `work` interface, which can <b>name</b> the `work` interface, allowing differentiation in the process results via `workName`.
+
+This is crucial as it serves as a shortcut for quickly retrieving results within the process chain. 
+
+An example of defining a NamedPointWork is:
+
+```java
+PrintMessageWork work4 = new PrintMessageWork("ok");
+aNamePointWork(work4).named("work4");
+```
+Note: Your custom `Work` will be decorated with `NamedPointWork` in the process and automatically generate a name to support the subsequent `trace` function.
+
+
 ## The WorkReport interface
 After the process is executed, the result will be encapsulated into the `WorkReport` interface. The following is the `WorkReport` interface:
 
@@ -92,6 +106,7 @@ public interface WorkReport extends ExecuteStep {
     Throwable getError();
     WorkContext getWorkContext();
     Object getResult();
+    String getWorkName();
 
 }
 ```
@@ -99,6 +114,7 @@ The `WorkReport` contains the following information:
 1. If the work execute success, the state is `COMPLETED`，otherwise is `FAILED`.
 2. `getError()`can retrieve the exception information.
 3. The return result of `Work` is obtained through `getResult()` method.
+4. `getWorkName()` can retrieve the corresponding `Work` to be executed.
 
 ## Work Policy
 Failure or exception may occur during the execution of the flows, `Work Policy` used to define the handling plan for `special` situations that occur during the execution flows.
@@ -106,11 +122,11 @@ Failure or exception may occur during the execution of the flows, `Work Policy` 
 Corresponding policies can be set in the process definition through the `policy(WorkExecutePolicy)` method.
 
 There are several types of `WorkExecutePolicy` available:
-- `FAST_FAIL` When a work unit fails to execute (with a status of `FAILED`), stop the execution  and return the failure result
-- `FAST_FAIL_EXCEPTION` When a work unit fails to execute and the `error` field information is not `NULL`, stop the execution  and return the failure result. `default` policy
+- `FAST_FAIL` When a work unit fails to execute (with a status of `FAILED`), stop the execution  and return the failure result, return all result if not have any FAIL
+- `FAST_FAIL_EXCEPTION` When a work unit fails to execute and the `error` field information is not `NULL`, stop the execution  and return the failure result, return all result if not have any FAIL `default` policy
 - `FAST_SUCCESS` When a work unit is successfully executed (with the status of `Completed`), stop the execution  and return the result of the success.
 - `FAST_ALL` Execute all work units, regardless of any `exception` information
-- `FAST_ALL_SUCCESS` Execute all work units and return all successful results. Currently only effective for `ParalllelFlow`, equivalent to `FAST_ALL` for other flows.`
+- `FAST_ALL_SUCCESS` Execute all work units and return all successful results. 
 - `FAST_EXCEPTION` When a work unit executes an `exception`, stop the execution  and throw the `exception`.
 
 # Define a WorkFlow
@@ -156,7 +172,7 @@ A `RepeatFlow` is a flow of looping a given unit of work until the condition is 
 
 You can build conditional logic that meets the requirements by customizing the `WorkReportPredicte` interface.
 
-To create a `RepeatFlow`, you can refer to the following example(`test/java/TestRepeatWork`)：
+To create a `RepeatFlow`, you can refer to the following example(`test/java/TestRepeatFlow`)：
 ```java
 WorkFlow flow = aNewRepeatFlow(repeatWork).times(3);
 // 或者
@@ -382,6 +398,7 @@ after parallel
 work4
 after conditional
 ```
+You can use an infinite number of `then` methods to build workflows (not recommended), which will be executed sequentially like `SequentialWorkFlow`, and the return result policy still meets the corresponding workflow's `policy` policy.
 
 ## LastStep
 `LastStep` is similar to `finally` in that it always executes its units of work, regardless of whether an exception occurs. The interface definition is as follows:
@@ -469,4 +486,80 @@ You can also execute the workflow through the `AbstractWorkFlow.execute` method:
 WorkReport workReport = aNewSequentialFlow(work1, work2, work3).execute();
 ```
 
-At this point, custom context information can be passed through the `context()` method
+At this point, custom context information can be passed through the `context()` method.
+
+# Get the workflow results
+
+## DefaultWorkReport
+When a `Work` is executed, it returns a `DefaultWorkReport` object that implements the `WorkReport` interface and inherits the `AbstractWorkReport` class, giving it the ability to step build.
+
+Obtain the execution result of the corresponding `Work` through the `getResult()` method, and obtain the name of the corresponding `Work` through the `getWorkName()` method
+
+## MultipleWorkReport
+
+When the built-in `WorkFlow` returns a `WorkReport` , the `WorkReport` <b>inherits</b> `MultipleWorkReport`. A `MultipleWorkReport` may have multiple results, all of which are included in the `reports` property. 
+
+It provides a simple method to retrieve the corresponding results based on the index and convert them to target class:
+```java
+public <T> T getResult(int index, Class<T> clazz) {
+    return (T) getResult().get(index);
+}
+
+
+public <T> Collection<T> getResultCollection(int index, Class<T> clazz) {
+    return (Collection<T>) getResult(index, clazz);
+}
+```
+An example of `MultipleWorkReport` is:
+```java
+// the ParallelWorkReport inherits the MultipleWorkReport
+ParallelWorkReport report = aNewParallelFlow(countWork, dataWork).execute();
+Integer count = report.getResult(0, Integer.class);
+List<Order> applies = Lists.newArrayList(report.getResultCollection(1, Order.class));
+```
+The status of `MultipleWorkReport` follows the following rules:
+1. If any result is `FAILED`, its status is' `FAILED`
+2. If all results are `Completed`, then the status is `Completed`
+3. If `reports` is empty, return `Completed`
+
+
+## Trace result
+`Trace` 'is a support for tracing the results of `workFlow`, which can be opened through the `trace (true)` method. 
+
+The execution results of each `Work` in the workflow will be stored according to the mapping from `name` to `WorkReport` , and the corresponding result mapping will be obtained through the `getExecutedRReportMap()` method.
+
+An example of a trace is (for more examples, please refer to 'test/Java/TraceTest'):
+```java
+PrintMessageWork work1 = new PrintMessageWork("foo");
+PrintMessageWork work2 = new PrintMessageWork("hello");
+PrintMessageWork work3 = new PrintMessageWork("world");
+PrintMessageWork work4 = new PrintMessageWork("ok");
+PrintMessageWork work5 = new PrintMessageWork("nok");
+
+ConditionalFlow conditionalFlow = aNewConditionalFlow(
+    aNewParallelFlow(work2,work3).withAutoShutDown(true)
+).when(WorkReportPredicate.COMPLETED, aNamePointWork(work4).named("work4"), work5).trace(true);
+
+WorkContext workContext = new WorkContext();
+SequentialFlow flow = aNewSequentialFlow(
+    aNewRepeatFlow(work1).times(3),
+    conditionalFlow
+).named("sequential").trace(true);
+aNewWorkFlowEngine().run(flow, workContext);
+Map<String, WorkReport> map =  flow.getExecutedReportMap();
+//you can get result of work4
+WorkReport work4Report = map.get("work4");
+for (Map.Entry<String, WorkReport> entry : map.entrySet()) {
+    System.out.println(entry.getKey());
+    WorkReport report = entry.getValue();
+    System.out.println(report.getClass().getName());
+}
+//you can get the result of conditionalFlow
+Map<String, WorkReport> map2 =  conditionalFlow.getExecutedReportMap();
+for (Map.Entry<String, WorkReport> entry : map2.entrySet()) {
+    System.out.println(entry.getKey());
+    WorkReport report = entry.getValue();
+    System.out.println(report.getClass().getName());
+}
+```
+

@@ -18,7 +18,7 @@ package com.baomibing.work.step;
 
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 
 import java.util.function.Function;
 
@@ -31,6 +31,6 @@ public interface ThenStep extends WorkFlow {
 
     WorkFlow then(Function<WorkReport, Work> fun);
 
-    WorkFlow then(Work... works);
+    WorkFlow then(Work work);
 
 }

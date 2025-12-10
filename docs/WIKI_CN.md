@@ -76,6 +76,14 @@ Work doSomeWork = context -> {
 };
 ```
 
+## NamedPointWork 类
+一个修饰`work`接口的类，可<b>命名</b> `work` 接口，在流程结果中通过 `workName` 来进行区分，这很重要，是在流程链中获快速取结果的一种快捷方式，定义一个 NamedPointWork例子为:
+```java
+PrintMessageWork work4 = new PrintMessageWork("ok");
+aNamePointWork(work4).named("work4");
+```
+注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持。
+
 ## 流程结果
 流程执行后结果会被封装到 `WorkReport` 接口中，以下是`WorkReport` 接口:
 ```java
@@ -85,6 +93,7 @@ public interface WorkReport extends ExecuteStep {
     Throwable getError();
     WorkContext getWorkContext();
     Object getResult();
+    String getWorkName();
 
 }
 ```
@@ -92,16 +101,17 @@ WorkReport具有以下信息：
 1. 如果运行成功 state 为 `COMPLETED`，失败为 `FAILED`
 2. `getError()`可获取对应的异常信息
 3. Work 的返回结果通过`getResult()`获取
+4. `getWorkName()` 可获取对应执行的 Work
 
 ## 流程执行策略
 多个流程执行过程中会出现失败或者异常，流程策略用来定义执行过程中出现`特殊`情况的处理方案。
 在流程定义中可以通过 `policy` 方法来进行过设置对应的策略。
 策略`WorkExecutePolicy`有如下几种:
-- `FAST_FAIL` 有一个工作单元执行`失败`(状态为 `FAILED`)时，停止执行流程并返回失败结果
-- `FAST_FAIL_EXCEPTION` 有一个工作单元执行`失败`时并且`异常`(`error`字段) 信息不为 `NULL` 时，停止执行流程并返回失败结果，`默认方案`
+- `FAST_FAIL` 有一个工作单元执行`失败`(状态为 `FAILED`)时，停止执行流程并返回失败结果，没有错误时返回所有结果
+- `FAST_FAIL_EXCEPTION` 有一个工作单元执行`失败`时并且`异常`(`error`字段) 信息不为 `NULL` 时，停止执行流程并返回失败结果，没有错误时返回所有结果，`默认方案`
 - `FAST_SUCCESS` 有一个工作单元执行成功(状态为`COMPLETED`)时，停止执行流程并返回该成功的结果
 - `FAST_ALL` 执行所有工作单元，不管是否有异常信息
-- `FAST_ALL_SUCCESS` 执行所有工作单元，返回所有成功的结果，当前只对`ParalllelFlow`生效，对于其他流程等同`FAST_ALL`
+- `FAST_ALL_SUCCESS` 执行所有工作单元，返回所有成功的结果
 - `FAST_EXCEPTION` 有一个工作单元执行`异常`时，停止执行流程并抛出异常信息
 
 # 定义一个流程
@@ -142,7 +152,7 @@ WorkFlow flow = aNewConditionalFlow(successWork).when(WorkReportPredicate.COMPLE
 ## RepeatFlow
 一个`RepeatFlow`是对于给定的工作单元进行循环，直到条件为`false`或者循环固定的次数。条件表达式通过`WorkReportPredicate`来进行构建。
 你可以通过自定义`WorkReportPredicate`接口来构建满足要求的条件逻辑。
-要构建一个`RepeatFlow`，可以参考以下的例子(`test/java/TestRepeatWork`)：
+要构建一个`RepeatFlow`，可以参考以下的例子(`test/java/TestRepeatFlow`)：
 ```java
 WorkFlow flow = aNewRepeatFlow(repeatWork).times(3);
 // 或者
@@ -360,6 +370,7 @@ after parallel
 work4
 after conditional
 ```
+你可以通过无限多个 `then` 方法来进行构建工作流（不建议），这些工作流会像 `SequentialWorkFlow` 那样顺序执行，返回结果策略仍满足对应工作流的 `policy` 策略
 
 ## LastStep
 `LastStep` 与 `finally` 类似，总会执行其中的工作单元，不管是否发生异常，接口定义如下:
@@ -440,3 +451,70 @@ WorkReport workReport = workFlow.execute(new WorkContext());
 WorkReport workReport = aNewSequentialFlow(work1, work2, work3).execute();
 ```
 此时可以通过 `context()`方法来传递自定义的上下文信息
+
+# 获取工作流结果
+
+## DefaultWorkReport
+当一个 Work 执行时，将返回一个 `DefaultWorkReport`对象，该对象实现了 `WorkReport` 接口， 并继承了 `AbstractWorkReport`类，这样有了单步执行的能力，
+通过 `getResult()` 方法获取对应 `Work` 的执行结果，通过 `getWorkName()` 方法获取对应 `Work` 的名称
+
+## MultipleWorkReport
+当内置的 `WorkFlow` 返回 `WorkReport` 时，该 `WorkReport` <b>继承</b> `MultipleWorkReport`，一个`MultipleWorkReport` 会有多个结果，都包含在 `reports` 属性中，其提供了简单的方法来根据索引获取对应结果并进行转化：
+```java
+public <T> T getResult(int index, Class<T> clazz) {
+    return (T) getResult().get(index);
+}
+
+
+public <T> Collection<T> getResultCollection(int index, Class<T> clazz) {
+    return (Collection<T>) getResult(index, clazz);
+}
+```
+一个可供参考的例子为:
+```java
+ParallelWorkReport report = aNewParallelFlow(countWork, dataWork).execute();
+Integer count = report.getResult(0, Integer.class);
+List<Order> applies = Lists.newArrayList(report.getResultCollection(1, Order.class));
+```
+MultipleWorkReport 的状态遵循以下规则:
+1. 有一个结果为 `FAILED`，其状态为 `FAILED`
+2. 所有结果都为 `COMPLETED`，则状态为 `COMPLETED`
+3. 如果 `reports` 为空，返回 `COMPLETED`
+
+## trace 支持
+ `trace` 是对 `workFlow` 结果追踪的一种支持，可通过`trace(true)` 方法打开结果跟踪，工作流中的每个 `Work` 的执行结果会根据 `name -> WorkReport`的映射存储，通过 `getExecutedReportMap()` 方法获取对应的结果映射。
+ 
+一个 trace的例子为(更多例子请参考 `test/java/TraceTest`):
+```java
+PrintMessageWork work1 = new PrintMessageWork("foo");
+PrintMessageWork work2 = new PrintMessageWork("hello");
+PrintMessageWork work3 = new PrintMessageWork("world");
+PrintMessageWork work4 = new PrintMessageWork("ok");
+PrintMessageWork work5 = new PrintMessageWork("nok");
+
+ConditionalFlow conditionalFlow = aNewConditionalFlow(
+    aNewParallelFlow(work2,work3).withAutoShutDown(true)
+).when(WorkReportPredicate.COMPLETED, aNamePointWork(work4).named("work4"), work5).trace(true);
+
+WorkContext workContext = new WorkContext();
+SequentialFlow flow = aNewSequentialFlow(
+    aNewRepeatFlow(work1).times(3),
+    conditionalFlow
+).named("sequential").trace(true);
+aNewWorkFlowEngine().run(flow, workContext);
+Map<String, WorkReport> map =  flow.getExecutedReportMap();
+//you can get result of work4
+WorkReport work4Report = map.get("work4");
+for (Map.Entry<String, WorkReport> entry : map.entrySet()) {
+    System.out.println(entry.getKey());
+    WorkReport report = entry.getValue();
+    System.out.println(report.getClass().getName());
+}
+//you can get the result of conditionalFlow
+Map<String, WorkReport> map2 =  conditionalFlow.getExecutedReportMap();
+for (Map.Entry<String, WorkReport> entry : map2.entrySet()) {
+    System.out.println(entry.getKey());
+    WorkReport report = entry.getValue();
+    System.out.println(report.getClass().getName());
+}
+```

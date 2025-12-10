@@ -21,17 +21,17 @@ package com.baomibing.work.work;
  * @author zening (316279829@qq.com)
  */
 public enum WorkExecutePolicy {
-    //when the state FAIL, stop flow and return fail
+    //when the state FAIL, stop flow and return FAILED, return COMPLETED if not have any FAILED.
     FAST_FAIL,
-    //when the state FAIL and exception NOT NULL, stop flow and return fail (DEFAULT VALUE)
+    //(DEFAULT VALUE) when the state FAIL and exception NOT NULL, stop flow and return FAILED , return COMPLETED if not have any FAILED.
     FAST_FAIL_EXCEPTION,
-    //return the FIRST SUCCESS result
+    //return the FIRST SUCCESS result, return FAILED if not have any success result.
     FAST_SUCCESS,
-    //always execute all flow, regardless of whether an exception occurs
+    //always execute all flow, regardless of whether an exception occurs, always return COMPLETED
     FAST_ALL,
-    //return all complete result
+    //return all complete result, return FAILED if not have any success result.
     FAST_ALL_SUCCESS,
-    //when an EXCEPTION occurs , throw the exception
+    //when an EXCEPTION occurs , throw the exception, return COMPLETED if not have any exception.
     FAST_EXCEPTION
     ;
 }

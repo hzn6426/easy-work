@@ -18,7 +18,7 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 /**
  * Interface to define a flow of work units. A workflow is also a work, this is
  * what makes workflows composable.

@@ -1,7 +1,7 @@
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.predicate.WorkReportPredicate;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkStatus;
 import work.DelayPrintMessageWork;
 import work.PrintMessageWork;

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.baomibing.work.work;
+package com.baomibing.work.report;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -24,13 +24,13 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class LoopWorkReport extends DefaultWorkReport {
+public class LoopIndexWorkReport extends DefaultWorkReport {
 
     private int index = 0;
     private int length = 0;
 
-    public static LoopWorkReport aNewLoopWorkReport() {
-        return new LoopWorkReport();
+    public static LoopIndexWorkReport aNewLoopWorkReport() {
+        return new LoopIndexWorkReport();
     }
 
     public void with(WorkReport workReport) {

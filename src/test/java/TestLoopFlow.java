@@ -34,7 +34,7 @@ public class TestLoopFlow {
         PrintMessageWork work3 = new PrintMessageWork("work3");
         PrintMessageWork work4 = new PrintMessageWork("work4");
 
-        WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withContinuePredicate(LoopIndexPredicate.indexPredicate(2));
+        WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withContinuePredicate(LoopIndexPredicate.indexPredicate(1));
         aNewWorkFlowEngine().run(flow, new WorkContext());
     }
 

@@ -16,13 +16,14 @@
 package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkExecutePolicy;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.report.SequentialWorkReport;
+import com.baomibing.work.work.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
 
 /**
  * A sequential flow executes a set of work units in sequence.
@@ -33,12 +34,14 @@ public class SequentialFlow extends AbstractWorkFlow {
     private final List<Work> workList = new ArrayList<>();
 
     private SequentialFlow(List<Work> works) {
-        this.workList.addAll(works);
+        for (Work work : works) {
+            this.workList.add(wrapNamedPointWork(work));
+        }
     }
 
     @Override
-    public WorkReport execute() {
-        return doExecute(workList, getDefaultWorkContext());
+    public SequentialWorkReport execute() {
+        return aNewSequentialWorkReport(doSequenceExecute(workList, getDefaultWorkContext()));
     }
 
     public static SequentialFlow aNewSequentialFlow(Work... works) {
@@ -58,6 +61,11 @@ public class SequentialFlow extends AbstractWorkFlow {
     @Override
     public SequentialFlow context(WorkContext workContext) {
         this.workContext = workContext;
+        return this;
+    }
+
+    public SequentialFlow trace(boolean beTrace) {
+        this.beTrace = beTrace;
         return this;
     }
 }

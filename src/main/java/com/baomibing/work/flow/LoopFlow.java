@@ -18,14 +18,17 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.report.LoopIndexWorkReport;
+import com.baomibing.work.report.LoopWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
-import com.baomibing.work.work.LoopWorkReport;
-import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkExecutePolicy;
-import com.baomibing.work.work.WorkReport;
+import com.baomibing.work.work.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
 
 /**
  * A loop flow is defined by as follows:
@@ -40,14 +43,16 @@ import java.util.List;
  */
 public class LoopFlow extends AbstractWorkFlow {
 
-    private final List<Work> works;
+    private final List<Work> works = new ArrayList<>();
 
     private WorkReportPredicate breakPredicate;
 
     private WorkReportPredicate continuePredicate;
 
     private LoopFlow(List<Work> works) {
-        this.works = works;
+        for (Work work : works) {
+            this.works.add(wrapNamedPointWork(work));
+        }
     }
 
     public LoopFlow named(String name) {
@@ -66,31 +71,41 @@ public class LoopFlow extends AbstractWorkFlow {
         return this;
     }
 
+    public LoopFlow trace(boolean beTrace) {
+        this.beTrace = beTrace;
+        return this;
+    }
+
     @Override
     public LoopWorkReport execute() {
-        LoopWorkReport report = new LoopWorkReport();
-        report.setLength(works.size());
-        for (int i = 0; i < works.size(); i++) {
-            report.setIndex(i);
+        WorkContext context = getDefaultWorkContext();
+        LoopIndexWorkReport indexReport = new LoopIndexWorkReport();
+        List<WorkReport> reports = new ArrayList<>();
+        indexReport.setLength(works.size());
+        for (int i = 0, len = works.size(); i < len ; i++) {
+            indexReport.setIndex(i);
             Work work = works.get(i);
+
             if (Checker.BeNotNull(breakPredicate)) {
-                if (breakPredicate.apply(report)) {
+                if (breakPredicate.apply(indexReport)) {
                     break;
                 }
             }
             if (Checker.BeNotNull(continuePredicate)) {
-                if (continuePredicate.apply(report)) {
+                if (continuePredicate.apply(indexReport)) {
                     continue;
                 }
             }
-            WorkReport defaultReport = doSingleWork(work, getDefaultWorkContext());
-            report.with(defaultReport);
+            WorkReport defaultReport = doSingleWork(work, context);
+            reports.add(defaultReport);
+            indexReport.with(defaultReport);
             if (beBreak(defaultReport)) {
                 break;
             }
 
         }
-        return report;
+        traceReport(aNewLoopWorkReport().setWorkName(name).addAllReports(reports));
+        return aNewLoopWorkReport(getPolicyReport(reports, context));
     }
 
 
