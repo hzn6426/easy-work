@@ -62,7 +62,7 @@
         <guava.version>33.4.0-jre</guava.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <commons.collections4.version>4.4</commons.collections4.version>
-        <cffu2.version>2.0.5</cffu2.version>
+        <cffu2.version>2.0.6</cffu2.version>
         <lombok.version>1.18.12</lombok.version>
 
     </properties>
