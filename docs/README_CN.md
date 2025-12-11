@@ -95,7 +95,7 @@ aNewWorkFlowEngine().run(flow, new WorkContext());
 
 你可以在 `test/java` 中 查看更多的测试用例。
 
-更详细的信息，请参考[wiki](docs/WIKI.md)
+更详细的信息，请参考[wiki](WIKI_CN.md)
 
 <b>注意：此项目中 API 的部分命名方式 参考 <a href="https://github.com/j-easy/easy-flows">easy-flow</a></b>，一个非常简单易用的流程引擎。
 
