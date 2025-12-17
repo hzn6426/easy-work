@@ -16,12 +16,13 @@
 package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.report.SequentialWorkReport;
+import com.baomibing.work.report.*;
+import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
 
@@ -31,18 +32,79 @@ import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkR
  * @author zening (316279829@qq.com)
  */
 public class SequentialFlow extends AbstractWorkFlow {
-    private final List<Work> workList = new ArrayList<>();
 
     private SequentialFlow(List<Work> works) {
-        for (Work work : works) {
-            this.workList.add(wrapNamedPointWork(work));
-        }
+        works.forEach(work -> workList.add(wrapNamedPointWork(work)));
+        this.workList.add(new EndWork());
     }
 
     @Override
     public SequentialWorkReport execute() {
-        return aNewSequentialWorkReport(doSequenceExecute(workList, getDefaultWorkContext()));
+        return execute(Strings.EMPTY);
     }
+
+    public SequentialWorkReport execute(String point) {
+        return aNewSequentialWorkReport(executeInternal(point));
+    }
+
+    @Override
+    public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
+        return executeThenInternal(workReport, point);
+    }
+
+    @Override
+    public void doExecute(String point) {
+        if (beStopped()) {
+            return;
+        }
+
+        WorkContext workContext = getDefaultWorkContext();
+        Work work = queue.poll();
+
+        if (work instanceof EndWork) {
+            return;
+        }
+
+        //cache the result
+        WorkReport report = doSingleWork(work, workContext, point);
+        multipleWorkReport.addReport(report);
+
+        if (beStopped()) {
+            if (work instanceof WorkFlow) {
+                queue.offerFirst(work);
+            }
+            pointWork = queue.peek();
+            return;
+        }
+
+        if (beBreak(report)) {
+            return;
+        }
+
+        //execute to next
+        if (report.getStatus() != WorkStatus.STOPPED) {
+            doExecute(point);
+        }
+
+    }
+
+    @Override
+    public void locate2CurrentWork() {
+        locate2CurrentWorkInternal();
+    }
+
+    @Override
+    public SequentialFlow then(Function<WorkReport, Work> fun) {
+        thenFuns.add(fun);
+        return this;
+    }
+
+    @Override
+    public SequentialFlow then(Work work) {
+        thenFuns.add(report -> work);
+        return this;
+    }
+
 
     public static SequentialFlow aNewSequentialFlow(Work... works) {
         return new SequentialFlow(Arrays.asList(works));

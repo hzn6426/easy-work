@@ -13,15 +13,16 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.baomibing.work.work;
+package com.baomibing.work.flow;
 
+import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.report.WorkReport;
 /**
- * The execution state of unit work
+ * Interface to define a flow of work units which support execute the point to pause the workflow
  *
  * @author zening (316279829@qq.com)
  */
-public enum WorkStatus {
-    COMPLETED,
-    FAILED,
-    STOPPED,
+public interface PointWorkFlow extends WorkFlow {
+
+    WorkReport execute(WorkContext context, String point);
 }

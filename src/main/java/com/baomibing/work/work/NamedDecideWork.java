@@ -15,13 +15,30 @@
  */
 package com.baomibing.work.work;
 
-/**
- * The execution state of unit work
- *
- * @author zening (316279829@qq.com)
- */
-public enum WorkStatus {
-    COMPLETED,
-    FAILED,
-    STOPPED,
+import com.baomibing.work.context.WorkContext;
+import lombok.Getter;
+
+public class NamedDecideWork extends NamedWork {
+    @Getter
+    private final Work decideWork;
+
+    private NamedDecideWork(Work work) {
+        this.decideWork = work;
+    }
+
+    public static NamedDecideWork aNewNamedDecideWork(Work work) {
+        return new NamedDecideWork(work);
+    }
+
+    @Override
+    public NamedDecideWork named(String name) {
+        this.name = name;
+        return this;
+    }
+
+    @Override
+    public Object execute(WorkContext context) {
+        //ignore
+        return null;
+    }
 }

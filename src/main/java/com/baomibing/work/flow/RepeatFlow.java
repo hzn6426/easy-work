@@ -18,13 +18,15 @@ package com.baomibing.work.flow;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.TimesPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.RepeatWorkReport;
+import com.baomibing.work.util.Checker;
+import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.report.WorkReport;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.baomibing.work.work.WorkStatus;
+import java.util.function.Function;
 
 import static com.baomibing.work.report.RepeatWorkReport.aNewRepeatWorkReport;
 
@@ -34,31 +36,108 @@ import static com.baomibing.work.report.RepeatWorkReport.aNewRepeatWorkReport;
  * @author zening (316279829@qq.com)
  */
 public class RepeatFlow extends AbstractWorkFlow {
-
+    //If the predicate is true, stop the repeat loop
     private final WorkReportPredicate workReportPredicate;
-    private final Work work;
-
-    @Override
-    public RepeatWorkReport execute() {
-//        return execute(Strings.EMPTY);
-        WorkReport workReport;
-        WorkContext context = getDefaultWorkContext();
-        List<WorkReport> reports = new ArrayList<>();
-        do {
-            workReport = doSingleWork(work, context);
-            reports.add(workReport);
-            if (beBreak(workReport)) {
-                break;
-            }
-        } while (!workReportPredicate.apply(workReport));
-
-        traceReport(aNewRepeatWorkReport().setWorkName(name).addAllReports(reports));
-        return aNewRepeatWorkReport(getPolicyReport(reports, context));
-    }
+    //default peek model for the queue, when execute then block use poll mode
+    private boolean bePoll = false;
 
     private RepeatFlow(WorkReportPredicate predicate, Work theWork) {
         this.workReportPredicate = predicate;
-        this.work = wrapNamedPointWork(theWork);
+        workList.add(wrapNamedPointWork(theWork));
+    }
+
+    @Override
+    public RepeatWorkReport execute() {
+        return execute(Strings.EMPTY);
+    }
+
+    @Override
+    public RepeatWorkReport execute(String point) {
+        return aNewRepeatWorkReport(executeInternal(point));
+    }
+
+    @Override
+    public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
+        if (workReport.getStatus() != WorkStatus.STOPPED) {
+            if (Checker.BeNotEmpty(thenFuns) ) {
+                if (pointWork == null) {
+                    bePoll = true;
+                }
+            }
+        }
+        return executeThenInternal(workReport, point);
+    }
+
+    @Override
+    public void doExecute(String point) {
+        if (beStopped()) {
+            return;
+        }
+
+        WorkContext workContext = getDefaultWorkContext();
+
+        Work work;
+        if (bePoll) {
+            work = queue.poll();
+        } else {
+            work = queue.peek();
+        }
+
+        //cache the result
+        WorkReport report = doSingleWork(work, workContext, point);
+        multipleWorkReport.addReport(report);
+
+        boolean beWorkFlow = work instanceof WorkFlow;
+        boolean beStopped = beStopped();
+
+        if (beWorkFlow) {
+            if (!beStopped) {
+                if ( workReportPredicate.apply(report)) {
+                    return;
+                }
+            }
+        } else {
+            if ( workReportPredicate.apply(report)) {
+                return;
+            }
+        }
+
+        if (beStopped) {
+            if (beWorkFlow) {
+                if (bePoll) {
+                    queue.offerFirst(work);
+                }
+            }
+            pointWork = queue.peek();
+            return;
+        }
+
+        if (beBreak(report)) {
+            return;
+        }
+
+        //execute to next
+        if (report.getStatus() != WorkStatus.STOPPED) {
+            doExecute(point);
+        }
+
+    }
+
+    @Override
+    public void locate2CurrentWork() {
+        locate2CurrentWorkInternal();
+    }
+
+    @Override
+    public RepeatFlow then(Function<WorkReport, Work> fun) {
+        thenFuns.add(fun);
+        return this;
+    }
+
+    @Override
+    public RepeatFlow then(Work work) {
+        thenFuns.add(report -> work);
+        return this;
     }
 
     public RepeatFlow named(String name) {

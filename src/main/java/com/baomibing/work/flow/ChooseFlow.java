@@ -18,18 +18,22 @@ package com.baomibing.work.flow;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.ChooseWorkReport;
+import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.util.Checker;
-import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkExecutePolicy;
+import com.baomibing.work.util.Strings;
+import com.baomibing.work.work.*;
 import com.baomibing.work.report.WorkReport;
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static com.baomibing.work.report.ChooseWorkReport.aNewChooseWorkReport;
-import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
+import static com.baomibing.work.work.NamedDecideWork.aNewNamedDecideWork;
+import static com.baomibing.work.work.NamedOtherWiseWork.aNewNamedOtherWiseWork;
+import static com.baomibing.work.work.NamedWhenWork.aNewNamedWhenWork;
 
 /**
  * A choose flow is defined by as follows:
@@ -44,50 +48,118 @@ import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
  */
 public class ChooseFlow extends AbstractWorkFlow {
 
-    private final List<WhenWork>  whenWorks;
-    private final Work work;
-    private final Work otherWiseWork;
     private boolean shortLogic = Boolean.TRUE;
+    //single choose when executed
+    private boolean beExecutedWhen = Boolean.FALSE;
+    //executing then block
+    private boolean beExecuteThen = Boolean.FALSE;
+    //the decide work report
+    private WorkReport predicateWorkReport;
+
+    private  ChooseFlow(Work theWork, List<WhenWork> whenWorks, Work otherWiseWork) {
+        this.workList.add(aNewNamedDecideWork(wrapNamedPointWork(theWork)));
+        whenWorks.forEach(whenWork -> workList.add(aNewNamedWhenWork(whenWork.getPredicate(), wrapNamedPointWork(whenWork.getWork()))));
+        this.workList.add(aNewNamedOtherWiseWork(wrapNamedPointWork(otherWiseWork)));
+        this.workList.add(new EndWork());
+    }
 
     @Override
     public ChooseWorkReport execute() {
-        WorkContext context = getDefaultWorkContext();
+        return execute(Strings.EMPTY);
+    }
 
-        WorkReport report = doSingleWork(work, context);
-        traceReport(report);
+    @Override
+    public ChooseWorkReport execute(String point) {
+        return aNewChooseWorkReport(executeInternal(point));
+    }
 
-        List<WorkReport> reports = Lists.newArrayList();
-        WorkReport executeReport;
-        boolean beExecute = false;
-        for (WhenWork whenWork : whenWorks) {
-            if (whenWork.predicate.apply(report)) {
-                beExecute = true;
-                if (Checker.BeNull(whenWork.getWork())) {
-                    executeReport = aNewWorkReport();
-                } else {
-                    executeReport = doSingleWork(whenWork.getWork(), context);
-                }
-                reports.add(executeReport);
-                if (shortLogic) {
-                    break;
+    @Override
+    public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
+        if (workReport.getStatus() != WorkStatus.STOPPED) {
+            if (Checker.BeNotEmpty(thenFuns) ) {
+                if (pointWork == null) {
+                    beExecuteThen = true;
                 }
             }
         }
-        if (!beExecute) {
-            if (Checker.BeNotNull(otherWiseWork)) {
-                executeReport = doSingleWork(otherWiseWork, context);
-                reports.add(executeReport);
-            }
-        }
-        traceReport(aNewChooseWorkReport().setWorkName(name).addAllReports(reports));
-        return aNewChooseWorkReport(getPolicyReport(reports, context));
+        return executeThenInternal(workReport, point);
     }
 
-    private  ChooseFlow(Work theWorks, List<WhenWork> whenWorks, Work otherWiseWork) {
-        this.work = theWorks;
-        this.whenWorks = whenWorks;
-        this.otherWiseWork = otherWiseWork;
+    @Override
+    public void doExecute(String point) {
+        if (beStopped()) {
+            return;
+        }
+
+        WorkContext workContext = getDefaultWorkContext();
+        Work work = queue.poll();
+
+        if (work instanceof EndWork) {
+            return;
+        }
+
+        boolean beWorkFlow;
+        //cache the result
+        WorkReport report;
+        if (work instanceof NamedWhenWork) {
+            NamedWhenWork namedWhenWork = (NamedWhenWork) work;
+            boolean beTrue = namedWhenWork.getPredicate().apply(predicateWorkReport);
+            beWorkFlow = namedWhenWork.getWork() instanceof WorkFlow;
+            if (beTrue) {
+                beExecutedWhen = true;
+                report = doSingleWork(namedWhenWork.getWork(), workContext, point);
+            } else {
+                doExecute(point);
+                return;
+            }
+        } else if (work instanceof NamedDecideWork){
+            NamedDecideWork namedDecideWork = (NamedDecideWork) work;
+            beWorkFlow = namedDecideWork.getDecideWork() instanceof WorkFlow;
+            report = doSingleWork(namedDecideWork.getDecideWork(), workContext, point);
+            predicateWorkReport = report;
+        } else if (work instanceof NamedOtherWiseWork){
+            NamedOtherWiseWork namedOtherWiseWork = (NamedOtherWiseWork) work;
+            beWorkFlow = namedOtherWiseWork.getWork() instanceof WorkFlow;
+            if (!beExecutedWhen) {
+                report = doSingleWork(namedOtherWiseWork.getWork(), workContext, point);
+            } else {
+                doExecute(point);
+                return;
+            }
+        } else {
+            beWorkFlow = work instanceof WorkFlow;
+            report = doSingleWork(work, workContext, point);
+        }
+
+        multipleWorkReport.addReport(report);
+
+        if (beStopped()) {
+            if (beWorkFlow) {
+                queue.offerFirst(work);
+            }
+            pointWork = queue.peek();
+            return;
+        }
+
+        if (shortLogic && beExecutedWhen && !beExecuteThen) {
+            return;
+        }
+
+        if (beBreak(report)) {
+            return;
+        }
+
+        //execute to next
+        if (report.getStatus() != WorkStatus.STOPPED) {
+            doExecute(point);
+        }
     }
+
+    @Override
+    public void locate2CurrentWork() {
+        locate2CurrentWorkInternal();
+    }
+
 
     public ChooseFlow witShortLogic(boolean shortLogic) {
         this.shortLogic = shortLogic;
@@ -112,6 +184,18 @@ public class ChooseFlow extends AbstractWorkFlow {
 
     public ChooseFlow trace(boolean beTrace) {
         this.beTrace = beTrace;
+        return this;
+    }
+
+    @Override
+    public ChooseFlow then(Function<WorkReport, Work> fun) {
+        thenFuns.add(fun);
+        return this;
+    }
+
+    @Override
+    public ChooseFlow then(Work work) {
+        thenFuns.add(report -> work);
         return this;
     }
 

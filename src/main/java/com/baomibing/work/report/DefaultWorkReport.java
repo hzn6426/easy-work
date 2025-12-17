@@ -18,6 +18,8 @@ package com.baomibing.work.report;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.work.WorkStatus;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * A default execution result implementation
@@ -31,6 +33,8 @@ public class DefaultWorkReport extends AbstractWorkReport {
     protected Throwable error;
     protected Object result;
     protected String workName;
+    @Getter
+    protected  WorkStatus stoppedStatus;
 
 
 
@@ -97,4 +101,10 @@ public class DefaultWorkReport extends AbstractWorkReport {
         this.workName = workName;
         return this;
     }
+
+    public DefaultWorkReport setStoppedStatus(WorkStatus status) {
+        this.stoppedStatus = status;
+        return this;
+    }
+
 }

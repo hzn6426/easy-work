@@ -20,13 +20,17 @@ import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.LoopIndexWorkReport;
 import com.baomibing.work.report.LoopWorkReport;
+import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
+import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
+import com.google.common.collect.Iterables;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
 
@@ -34,7 +38,7 @@ import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
  * A loop flow is defined by as follows:
  *
  *  <ul>
- *      <li>works execute in loop</li>
+ *      <li>works execute in infinite loop</li>
  *      <li>when break predicate apply, break the loop</li>
  *      <li>when continue predicate apply, skip current and execute next loop</li>
  *  </ul>
@@ -43,16 +47,116 @@ import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
  */
 public class LoopFlow extends AbstractWorkFlow {
 
-    private final List<Work> works = new ArrayList<>();
-
+    //work report helper which cache the index and length of the loop
+    private final LoopIndexWorkReport indexReport = new LoopIndexWorkReport();
+    //if the predicate is true, break the loop
     private WorkReportPredicate breakPredicate;
-
+    //if the predicate is true, skip current work and continue the loop
     private WorkReportPredicate continuePredicate;
+    //loop index
+    private int index = 0;
+    //queue for poll operation, when execute `then` block, the poll is true
+    private boolean bePoll = false;
 
     private LoopFlow(List<Work> works) {
-        for (Work work : works) {
-            this.works.add(wrapNamedPointWork(work));
+        works.forEach(work -> workList.add(wrapNamedPointWork(work)));
+        indexReport.setLength(works.size());
+    }
+
+    @Override
+    public LoopWorkReport execute() {
+        return execute(Strings.EMPTY);
+    }
+
+    @Override
+    public LoopWorkReport execute(String point) {
+        return aNewLoopWorkReport(executeInternal(point));
+    }
+
+    @Override
+    public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
+        if (workReport.getStatus() != WorkStatus.STOPPED) {
+            if (Checker.BeNotEmpty(thenFuns) ) {
+                if (pointWork == null) {
+                    bePoll = true;
+                }
+            }
         }
+        return executeThenInternal(workReport, point);
+    }
+
+    @Override
+    public void doExecute(String point) {
+        if (beStopped()) {
+            return;
+        }
+
+        indexReport.setIndex(index);
+
+        if (!bePoll && Checker.BeNotNull(breakPredicate)) {
+            if (breakPredicate.apply(indexReport)) {
+                return;
+            }
+        }
+        if (!bePoll && Checker.BeNotNull(continuePredicate)) {
+            if (continuePredicate.apply(indexReport)) {
+                Work work = queue.poll();
+                if (bePoll == false) {
+                    queue.offer(work);
+                }
+            }
+        }
+
+        WorkContext workContext = getDefaultWorkContext();
+        //poll the work and add the last, infinite loop
+        Work work = queue.poll();
+        if (bePoll == false) {
+            queue.offer(work);
+        }
+
+        //cache the result
+        WorkReport report = doSingleWork(work, workContext, point);
+
+        multipleWorkReport.addReport(report);
+        indexReport.with(report);
+        index++;
+
+
+        if (beStopped()) {
+            if (work instanceof WorkFlow) {
+                if (bePoll == false) {
+                    queue.removeLast();
+                }
+                queue.offerFirst(work);
+            }
+            pointWork = queue.peek();
+            return;
+        }
+
+        if (beBreak(report)) {
+            return;
+        }
+
+        //execute to next
+        if (report.getStatus() != WorkStatus.STOPPED) {
+            doExecute(point);
+        }
+    }
+
+    @Override
+    public void locate2CurrentWork() {
+        if (Checker.BeNull(this.pointWork)) {
+            queue = new LinkedList<>();
+            queue.addAll(workList);
+            return;
+        }
+        if (bePoll) {
+            queue = new LinkedList<>();
+            String currentWorkName = getNameOfWork(pointWork);
+            int index = Iterables.indexOf(workList, w -> currentWorkName.equals(getNameOfWork(w)));
+            queue.addAll(workList.subList(index, workList.size()));
+        }
+        pointWork = null;
     }
 
     public LoopFlow named(String name) {
@@ -77,37 +181,16 @@ public class LoopFlow extends AbstractWorkFlow {
     }
 
     @Override
-    public LoopWorkReport execute() {
-        WorkContext context = getDefaultWorkContext();
-        LoopIndexWorkReport indexReport = new LoopIndexWorkReport();
-        List<WorkReport> reports = new ArrayList<>();
-        indexReport.setLength(works.size());
-        for (int i = 0, len = works.size(); i < len ; i++) {
-            indexReport.setIndex(i);
-            Work work = works.get(i);
-
-            if (Checker.BeNotNull(breakPredicate)) {
-                if (breakPredicate.apply(indexReport)) {
-                    break;
-                }
-            }
-            if (Checker.BeNotNull(continuePredicate)) {
-                if (continuePredicate.apply(indexReport)) {
-                    continue;
-                }
-            }
-            WorkReport defaultReport = doSingleWork(work, context);
-            reports.add(defaultReport);
-            indexReport.with(defaultReport);
-            if (beBreak(defaultReport)) {
-                break;
-            }
-
-        }
-        traceReport(aNewLoopWorkReport().setWorkName(name).addAllReports(reports));
-        return aNewLoopWorkReport(getPolicyReport(reports, context));
+    public LoopFlow then(Function<WorkReport, Work> fun) {
+        thenFuns.add(fun);
+        return this;
     }
 
+    @Override
+    public LoopFlow then(Work work) {
+        thenFuns.add(report -> work);
+        return this;
+    }
 
     public static LoopFlow aNewLoopFlow(Work... works) {
         return new LoopFlow(Arrays.asList(works));

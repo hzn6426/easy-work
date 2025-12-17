@@ -18,7 +18,7 @@ package com.baomibing.work.report;
 import java.util.List;
 
 /**
- * A default parallel execution result implementation
+ * A default parallel flow execution result implementation
  *
  * @author zening (316279829@qq.com)
  */
