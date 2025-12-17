@@ -1,3 +1,18 @@
+/**
+ * Copyright (c) 2025-2025, zening (316279828@qq.com).
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.baomibing.work.report;
 
 import com.baomibing.work.context.WorkContext;
@@ -10,7 +25,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+/**
+ * A default workflow execution result implementation, which contains multiple work reports.
+ *
+ * @author zening (316279829@qq.com)
+ */
 public class MultipleWorkReport extends AbstractWorkReport {
 
     @Getter
@@ -57,9 +76,18 @@ public class MultipleWorkReport extends AbstractWorkReport {
 
     @Override
     public WorkStatus getStatus() {
+        if (status == WorkStatus.STOPPED) {
+            return WorkStatus.STOPPED;
+        }
+        boolean beStopped = reports.stream().anyMatch(work -> work.getStatus().equals(WorkStatus.STOPPED));
+        if (beStopped) {
+            return WorkStatus.STOPPED;
+        }
+
         if (Checker.BeEmpty(reports) && Checker.BeNotNull(status)) {
             return status;
         }
+
         for (WorkReport report : reports) {
             if (report.getStatus().equals(WorkStatus.FAILED)) {
                 return WorkStatus.FAILED;
@@ -119,7 +147,7 @@ public class MultipleWorkReport extends AbstractWorkReport {
         return (Collection<T>) getResult(index, clazz);
     }
 
-    protected void copy(MultipleWorkReport source) {
+    public void copy(MultipleWorkReport source) {
         setStatus(source.getStatus());
         setWorkName(source.getWorkName());
         setWorkContext(source.getWorkContext());

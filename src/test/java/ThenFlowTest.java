@@ -21,6 +21,8 @@ public class ThenFlowTest {
         PrintMessageWork work5 = new PrintMessageWork("work5");
         PrintMessageWork work6 = new PrintMessageWork("after parallel");
         PrintMessageWork work7 = new PrintMessageWork("after conditional");
+        PrintMessageWork work8 = new PrintMessageWork("after 8");
+        PrintMessageWork work9 = new PrintMessageWork("after 9");
         ExceptionPrintMessageWork exceptionPrintMessageWork = new ExceptionPrintMessageWork();
 
         WorkContext workContext = new WorkContext();
@@ -37,7 +39,7 @@ public class ThenFlowTest {
                 WorkReportPredicate.COMPLETED,
                 work4,
                 work5
-            ).then(work7)
+            ).then(work7).then(work8).then(work9)
         );
         aNewWorkFlowEngine().run(flow, workContext);
     }

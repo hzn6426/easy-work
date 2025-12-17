@@ -18,39 +18,31 @@ package com.baomibing.work.work;
 import com.baomibing.work.context.WorkContext;
 import lombok.Getter;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
-public class NamedPointWork extends NamedWork {
-
-    private final Work work;
-    @Getter
-    private String point;
+public class NamedParallelWork extends NamedWork {
 
     @Getter
-    private boolean beExecuted = true;
+    private List<Work> supplierWorks  = new ArrayList<>();
 
-    public static NamedPointWork aNamePointWork(Work work) {
-        return new NamedPointWork(work);
+    private NamedParallelWork(List<Work> works) {
+        this.supplierWorks = works;
     }
 
-    public NamedPointWork(Work work) {
-        this.work = work;
-    }
-
-    public NamedPointWork point(String point) {
-        this.point = point;
-        return this;
+    public static NamedParallelWork aNewParallelWork(List<Work> works) {
+        return new NamedParallelWork(works);
     }
 
     @Override
-    public NamedPointWork named(String name) {
+    public NamedParallelWork named(String name) {
         this.name = name;
         return this;
     }
 
     @Override
     public Object execute(WorkContext context) {
-        this.beExecuted = true;
-        return work.execute(context);
+        //ignore
+        return null;
     }
 }

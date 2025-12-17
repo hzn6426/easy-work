@@ -16,41 +16,34 @@
 package com.baomibing.work.work;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.predicate.WorkReportPredicate;
 import lombok.Getter;
 
-import java.util.UUID;
+public class NamedWhenWork extends  NamedWork {
 
-public class NamedPointWork extends NamedWork {
-
+    @Getter
+    private final WorkReportPredicate  predicate;
+    @Getter
     private final Work work;
-    @Getter
-    private String point;
 
-    @Getter
-    private boolean beExecuted = true;
-
-    public static NamedPointWork aNamePointWork(Work work) {
-        return new NamedPointWork(work);
-    }
-
-    public NamedPointWork(Work work) {
+    private NamedWhenWork(WorkReportPredicate predicate, Work work) {
+        this.predicate = predicate;
         this.work = work;
     }
 
-    public NamedPointWork point(String point) {
-        this.point = point;
-        return this;
+    public static NamedWhenWork aNewNamedWhenWork(WorkReportPredicate predicate, Work work) {
+        return new NamedWhenWork(predicate, work);
     }
 
     @Override
-    public NamedPointWork named(String name) {
+    public NamedWhenWork named(String name) {
         this.name = name;
         return this;
     }
 
     @Override
     public Object execute(WorkContext context) {
-        this.beExecuted = true;
-        return work.execute(context);
+        //ignore
+        return null;
     }
 }

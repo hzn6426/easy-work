@@ -15,36 +15,33 @@
  */
 package com.baomibing.work.flow;
 
-import com.baomibing.work.context.PointContext;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.exception.WorkFlowException;
-import com.baomibing.work.report.DefaultWorkReport;
-import com.baomibing.work.report.MultipleWorkReport;
-import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.report.*;
 import com.baomibing.work.step.LastStep;
 import com.baomibing.work.step.ThenStep;
 import com.baomibing.work.util.Checker;
+import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
+import com.google.common.collect.Iterables;
 import lombok.Getter;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.baomibing.work.context.PointContext.aNewPointContext;
-import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
 import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
-import static com.baomibing.work.work.WorkStatus.COMPLETED;
-import static com.baomibing.work.work.WorkStatus.FAILED;
+import static com.baomibing.work.work.WorkStatus.*;
 
 /**
  * An abstract workflow that implements basic process execution and universal process operations
  *
  * @author zening (316279829@qq.com)
  */
-public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
+public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWorkFlow {
     @Getter
     protected String name = UUID.randomUUID().toString();
+
     protected WorkExecutePolicy workExecutePolicy = WorkExecutePolicy.FAST_FAIL_EXCEPTION;
     @Getter
     protected WorkContext workContext = null;
@@ -58,37 +55,87 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
     @Getter
     protected Work lastWork;
 
+    //executed work flow report
     @Getter
     protected final MultipleWorkReport executedReport = new MultipleWorkReport();
+    //trace support for executed workflow which mapping by name-workReport
     @Getter
     protected final Map<String, WorkReport> executedReportMap = new HashMap<>();
 
+    // cache the original works in work flow
+    protected final List<Work> workList = new ArrayList<>();
+    // cache the point of work
+    protected Work pointWork;
+    // works in queue which support the point
+    protected LinkedList<Work> queue;
+    // executed work report of the work flow
+    protected MultipleWorkReport  multipleWorkReport = aNewSequentialWorkReport();
+
     public abstract MultipleWorkReport execute();
+    public abstract MultipleWorkReport execute(String point);
+    public abstract void doExecute(String point);
+    public abstract MultipleWorkReport executeThen(MultipleWorkReport workReport, String point);
+    public abstract void locate2CurrentWork();
 
 
     @Override
     public MultipleWorkReport execute(WorkContext context) {
         this.workContext = context;
         try {
-            MultipleWorkReport report = execute();
-            return doThenWork(report);
+            return execute();
         } finally {
             doLastWork();
         }
     }
 
-
     @Override
-    public AbstractWorkFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
-        return this;
+    public WorkReport execute(WorkContext context, String point) {
+        this.workContext = context;
+        try {
+            return execute(point);
+        } finally {
+            doLastWork();
+        }
     }
 
-    @Override
-    public AbstractWorkFlow then(Work work) {
-         thenFuns.add(report -> work);
-         return this;
+    protected MultipleWorkReport executeInternal(String point) {
+        multipleWorkReport.setWorkName(name);
+        locate2CurrentWork();
+        recoveryWorkReport(multipleWorkReport);
+
+        doExecute(point);
+        traceReport(multipleWorkReport);
+
+        MultipleWorkReport result =  getPolicyReport(multipleWorkReport.getReports(), getDefaultWorkContext());
+        MultipleWorkReport thenResult =  executeThen(result, point);
+        traceReport(thenResult);
+        return thenResult;
     }
+
+    protected MultipleWorkReport executeThenInternal(MultipleWorkReport workReport, String point) {
+        if (workReport.getStatus() == WorkStatus.STOPPED) {
+            return workReport;
+        }
+        List<Work> works = new ArrayList<>();
+
+        if (Checker.BeNotEmpty(thenFuns)) {
+            for (Function<WorkReport, Work> fun : thenFuns) {
+                works.add(wrapNamedPointWork(fun.apply(workReport)));
+            }
+            thenFuns.clear();
+        }
+        if (Checker.BeEmpty(works)) {
+            return workReport;
+        }
+
+        this.workList.addAll(works);
+        if (pointWork == null) {
+            pointWork = works.get(0);
+            return execute(point);
+        }
+        return workReport;
+    }
+
 
     @Override
     public AbstractWorkFlow lastly(Work work) {
@@ -96,104 +143,36 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
         return this;
     }
 
-    protected MultipleWorkReport doThenWork(MultipleWorkReport workReport) {
-        List<Work> works = new ArrayList<>();
-        if (Checker.BeNotEmpty(thenFuns)) {
-            for (Function<WorkReport, Work> fun : thenFuns) {
-                works.add(fun.apply(workReport));
-            }
-        }
-        if (Checker.BeEmpty(works)) {
-            return workReport;
-        }
-
-        return workReport.addReport(doSequenceExecute(works, workContext).setWorkName(workReport.getWorkName() + "_then"));
-
-    }
-
     protected void doLastWork() {
         if (Checker.BeNotNull(lastWork)) {
-            WorkReport report = doSingleWork(lastWork, workContext);
+            WorkReport report = doSingleWork(lastWork, workContext, Strings.EMPTY);
             traceReport(report);
         }
     }
 
-    protected MultipleWorkReport doSequenceExecute(List<Work> works, WorkContext context) {
-        List<WorkReport> reports = new ArrayList<>();
-        for (Work work : works) {
-            WorkReport report;
-            if (Checker.BeNull(work)) {
-                report = aNewWorkReport();
-            } else {
-                report = doSingleWork(work, context);
-            }
-            reports.add(report);
-            if (beBreak(report)) {
-                break;
-            }
-        }
-
-        traceReport(aNewSequentialWorkReport().setWorkName(name).addAllReports(reports));
-        return getPolicyReport(reports, context);
-    }
 
     protected boolean beThePoint(Work work, String point) {
         if (Checker.BeNotEmpty(point) && work instanceof NamedPointWork) {
             NamedPointWork pointWork = (NamedPointWork)work;
-            return pointWork.getPoint().equals(point);
+            return Checker.BeNotEmpty(pointWork.getPoint()) && pointWork.getPoint().equals(point);
         }
         return false;
     }
 
-    protected boolean beNeedSkip(Work work, String point) {
-        if (Checker.BeNotEmpty(point)) {
-            if (work instanceof NamedPointWork) {
-                NamedPointWork pointWork = (NamedPointWork)work;
-                return pointWork.isBeExecuted();
-            }
+
+    protected void locate2CurrentWorkInternal() {
+        queue = new LinkedList<>();
+        if (Checker.BeNull(this.pointWork)) {
+            queue.addAll(workList);
+            return;
         }
-        return false;
+        String currentWorkName = getNameOfWork(pointWork);
+        int index = Iterables.indexOf(workList, w -> currentWorkName.equals(getNameOfWork(w)));
+        queue.addAll(workList.subList(index, workList.size()));
+        pointWork = null;
     }
 
-    protected void saveCurrentPoint(String point) {
-        currentPoint = point;
-    }
-
-    protected void savePointReportIfNeed(WorkReport report,  String point) {
-        if (Checker.BeNotEmpty(currentPoint) && currentPoint.equals(point)) {
-            PointContext pointContext = aNewPointContext(report);
-            pointContext.copy(workContext);
-            this.workContext = pointContext;
-        }
-    }
-
-    protected WorkReport wrapPointReportIfNeed(WorkReport report, WorkContext context, String point) {
-        WorkReport target = report;
-        if (context instanceof PointContext) {
-            PointContext pointContext = (PointContext)context;
-            target = pointContext.getPointWorkReport();
-        }
-        savePointReportIfNeed(target, point);
-        return target;
-    }
-
-    protected WorkReport doSingleWorkExceptionally(Work work, WorkContext context) {
-        WorkReport workReport;
-        try {
-            workReport = doSingleWorkInternal(work, context);
-            return workReport;
-        } catch (Exception e) {
-            if (e instanceof WorkFlowException) {
-                throw (WorkFlowException) e;
-            } else {
-                throw (RuntimeException) e;
-            }
-        }
-
-    }
-
-
-    private WorkReport doSingleWorkInternal(Work work, WorkContext context) {
+    private WorkReport doSingleWorkInternal(Work work, WorkContext context, String point) {
         WorkReport workReport ;
         if (Checker.BeNull(context)) {
             if (Checker.BeNotNull(workContext)) {
@@ -206,34 +185,44 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
                 context.copy(workContext);
             }
         }
-        if (work instanceof WorkFlow) {
-            WorkFlow workFlow = (WorkFlow) work;
-            workReport = workFlow.execute(context);
+        if (work instanceof PointWorkFlow) {
+            PointWorkFlow workFlow = (PointWorkFlow) work;
+            workReport = workFlow.execute(context, point);
         } else {
             Object object = work.execute(context);
-            if (object instanceof WorkReport) {
-                workReport =  (WorkReport) object;
-            } else {
                 workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
                 if (work instanceof NamedPointWork) {
                     ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
                 }
+
+            if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
+                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(STOPPED);
             }
         }
         return workReport;
     }
 
-    protected WorkReport doSingleWork(Work work, WorkContext context) {
+    protected WorkReport doSingleWork(Work work, WorkContext context, String point) {
         WorkReport workReport ;
         try {
-            workReport = doSingleWorkInternal(work, context);
+            workReport = doSingleWorkInternal(work, context, point);
         } catch (Exception e) {
             workReport = new DefaultWorkReport().setError(e).setWorkContext(context).setResult(null).setStatus(FAILED);
             if (work instanceof NamedPointWork) {
                 ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
             }
+            if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
+                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(WorkStatus.STOPPED);
+            }
         }
         return workReport;
+    }
+
+    protected boolean beStopped() {
+        if (multipleWorkReport.getStatus() == WorkStatus.STOPPED) {
+            return true;
+        }
+        return false;
     }
 
     protected boolean beBreak(WorkReport workReport) {
@@ -257,10 +246,6 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
             context = new WorkContext();
         }
         return context;
-    }
-
-    protected WorkReport doDefaultExecute(WorkFlow workFlow) {
-        return workFlow.execute(getDefaultWorkContext());
     }
 
 
@@ -433,27 +418,43 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep {
         return work;
     }
 
-    protected WorkReport getReportByCache(Work work) {
+    protected String getNameOfWork(Work work) {
         String name = "";
-        if (work instanceof NamedPointWork) {
-            NamedPointWork namedPointWork = (NamedPointWork) work;
-            name = namedPointWork.getName();
+        if (work instanceof NamedWork) {
+            NamedWork namedWork = (NamedWork) work;
+            name = namedWork.getName();
         } else if (work instanceof AbstractWorkFlow) {
             AbstractWorkFlow abstractWorkFlow = (AbstractWorkFlow) work;
             name = abstractWorkFlow.getName();
         }
-        if (Checker.BeNotEmpty(name) && executedReportMap.containsKey(name)) {
-            return executedReportMap.get(name);
-        }
-        return null;
+        return name;
     }
 
-    protected WorkReport getReportByWork(Work work, WorkContext context) {
-        WorkReport report = getReportByCache(work);
-        if (Checker.BeNull(report)) {
-            return doSingleWork(work, context);
-        }
-        return report;
 
+    protected void recoveryWorkReport(WorkReport report) {
+        if (report instanceof DefaultWorkReport) {
+            DefaultWorkReport defaultWorkReport = (DefaultWorkReport) report;
+            if (defaultWorkReport.getStatus() == STOPPED) {
+                defaultWorkReport.setStatus(defaultWorkReport.getStoppedStatus()).setStoppedStatus(null);
+            }
+            return;
+        }
+        MultipleWorkReport multipleWorkReport = (MultipleWorkReport) report;
+        List<WorkReport> workReports = multipleWorkReport.getReports();
+        multipleWorkReport.setStatus(null);
+
+        if (Checker.BeNotEmpty(workReports)) {
+            //parallel reports not ordered
+            if (report instanceof ParallelWorkReport) {
+                for (WorkReport workReport : workReports) {
+                    recoveryWorkReport(workReport);
+                }
+            } else {
+                WorkReport workReport = workReports.get(workReports.size() - 1);
+                recoveryWorkReport(workReport);
+            }
+
+        }
     }
+
 }

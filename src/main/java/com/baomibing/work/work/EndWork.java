@@ -15,13 +15,16 @@
  */
 package com.baomibing.work.work;
 
+import com.baomibing.work.context.WorkContext;
+
 /**
- * The execution state of unit work
+ * A work flag which indicate complete execute the work flow
  *
  * @author zening (316279829@qq.com)
  */
-public enum WorkStatus {
-    COMPLETED,
-    FAILED,
-    STOPPED,
+public class EndWork implements Work {
+    @Override
+    public Object execute(WorkContext context) {
+        return null;
+    }
 }

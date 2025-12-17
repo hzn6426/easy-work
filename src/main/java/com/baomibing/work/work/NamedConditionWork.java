@@ -15,13 +15,9 @@
  */
 package com.baomibing.work.work;
 
-/**
- * The execution state of unit work
- *
- * @author zening (316279829@qq.com)
- */
-public enum WorkStatus {
-    COMPLETED,
-    FAILED,
-    STOPPED,
+import lombok.Getter;
+
+public abstract class NamedConditionWork extends NamedWork {
+    @Getter
+    protected Work work;
 }

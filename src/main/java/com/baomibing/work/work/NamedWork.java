@@ -15,13 +15,14 @@
  */
 package com.baomibing.work.work;
 
-/**
- * The execution state of unit work
- *
- * @author zening (316279829@qq.com)
- */
-public enum WorkStatus {
-    COMPLETED,
-    FAILED,
-    STOPPED,
+import lombok.Getter;
+
+import java.util.UUID;
+
+public abstract class  NamedWork implements Work {
+
+    @Getter
+    protected String name = UUID.randomUUID().toString();
+
+    public abstract NamedWork named(String name);
 }
