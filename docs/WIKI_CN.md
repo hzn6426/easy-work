@@ -77,12 +77,14 @@ Work doSomeWork = context -> {
 ```
 
 ## NamedPointWork 类
-一个修饰`work`接口的类，可<b>命名</b> `work` 接口，在流程结果中通过 `workName` 来进行区分，这很重要，是在流程链中获快速取结果的一种快捷方式，定义一个 NamedPointWork例子为:
+一个修饰`work`接口的类，可<b>命名</b> `work` 接口，在流程结果中通过 `workName` 来进行区分，这很重要，是在流程链中获快速取结果的一种快捷方式，同时该类支持断点模式，通过断点可暂停工作流
+
+定义一个 NamedPointWork例子为:
 ```java
 PrintMessageWork work4 = new PrintMessageWork("ok");
-aNamePointWork(work4).named("work4");
+aNamePointWork(work4).named("work4").point("WORK_4");
 ```
-注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持。
+注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持，如果 `Work` 已经被自定义 `NamedPointWork` 装饰，不会再对此进行处理。
 
 ## 流程结果
 流程执行后结果会被封装到 `WorkReport` 接口中，以下是`WorkReport` 接口:
@@ -327,7 +329,7 @@ public interface ThenStep extends WorkFlow {
 
     WorkFlow then(Function<WorkReport, Work> fun);
 
-    WorkFlow then(Work... works);
+    WorkFlow then(Work work);
 
 }
 ```
@@ -451,6 +453,40 @@ WorkReport workReport = workFlow.execute(new WorkContext());
 WorkReport workReport = aNewSequentialFlow(work1, work2, work3).execute();
 ```
 此时可以通过 `context()`方法来传递自定义的上下文信息
+
+## 暂停工作流
+你可以设置`断点`来进行暂停工作流，这可以通过使用 `NamedPointWork` 来装饰 Work，并设置断点，通过 `execute(String point)`方法来执行到对应的`断点`，
+通过 `execute()`方法来忽略断点执行，如果工作流已暂停，则从暂停处执行。
+
+
+一个可供参考的断点例子为（更多例子参考`test/java/**Point`)：
+```java
+PrintMessageWork a = new PrintMessageWork("a");
+PrintMessageWork b = new PrintMessageWork("b");
+PrintMessageWork c = new PrintMessageWork("c");
+PrintMessageWork d = new PrintMessageWork("d");
+PrintMessageWork e = new PrintMessageWork("e");
+PrintMessageWork f = new PrintMessageWork("f");
+PrintMessageWork g = new PrintMessageWork("g");
+PrintMessageWork h = new PrintMessageWork("h");
+
+SequentialFlow flow =  aNewSequentialFlow(
+    a,
+    b,
+    aNewSequentialFlow(aNamePointWork(c).named("THE_C").point("CC"),d),
+    e
+    ).then(f).then(aNamePointWork(g).named("THE_G").point("GG")).then(h);
+flow.execute("CC");
+System.out.println("execute to CC..");
+flow.execute("GG");
+System.out.println("execute to GG..");
+flow.execute("");
+```
+你可以在 Easy Work 内置的 6 种流程的任何位置设置`断点`，可以设置任意多个`断点`，注意以下几点：
+1. 断点只支持装饰 `Work` 接口，不支持修饰 `WorkFlow` 接口
+2. 对于 `ParallelWorkFlow` 中的 `Work` 设置断点会被忽略，这是为了保证其中的 `Work` 并发执行
+3. 对于 `then` 方法同样支持断点执行
+4. `last`方法不支持断点执行，因为它总是执行
 
 # 获取工作流结果
 

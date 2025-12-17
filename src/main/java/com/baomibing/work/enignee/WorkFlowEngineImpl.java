@@ -16,6 +16,7 @@
 package com.baomibing.work.enignee;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.flow.PointWorkFlow;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.report.WorkReport;
 
@@ -31,6 +32,10 @@ public class WorkFlowEngineImpl implements WorkFlowEngine {
     }
     public WorkReport run(WorkFlow workFlow, WorkContext workContext) {
         return workFlow.execute(workContext);
+    }
+
+    public WorkReport run(PointWorkFlow workFlow, WorkContext workContext, String point) {
+        return workFlow.execute(workContext, point);
     }
 
     public static WorkFlowEngine aNewWorkFlowEngine() {

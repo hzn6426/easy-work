@@ -90,6 +90,38 @@ WorkFlow flow = aNewSequentialFlow(
 );
 aNewWorkFlowEngine().run(flow, new WorkContext());
 ```
+## 暂停工作流
+现在（从 v1.0.5开始）工作流支持 `断点`， 通过`断点` 你可以暂停执行工作流，做一些其他事情然后恢复执行工作流。
+
+你可以在工作流的任何位置配置`断点`。
+
+例如，你可以将断点设置在`c`工作单元上，然后恢复执行。
+
+此工作流说明如下：
+<p align="center">
+    <img src="./img/point.png" width="70%">
+</p>
+
+此工作流可以通过以下代码段实现：
+```java
+SequentialFlow flow = aNewSequentialFlow(
+    aNewRepeatFlow(a).times(3),
+    aNewSequentialFlow(b,aNamePointWork(c).point("C_BREAK_POINT"),d),
+    aNewConditionalFlow(
+        aNewParallelFlow(e,f).withAutoShutDown(true)
+    ).when(
+        WorkReportPredicate.COMPLETED,
+        g,
+        h
+    ),
+    z
+);
+//执行到改断点并暂停
+flow.execute("C_BREAK_POINT");
+System.out.println("execute to the break point `C_BREAK_POINT`");
+//从断点处继续执行，直到完成
+flow.execute();
+```
 
 这不是一个非常有用的工作流，只是为了让你了解如何使用Easy Work而编写工作流。
 
