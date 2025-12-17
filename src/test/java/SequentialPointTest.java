@@ -87,14 +87,11 @@ public class SequentialPointTest {
 
     private static void testThenPoint() {
         PrintMessageWork a = new PrintMessageWork("a");
-
         PrintMessageWork b = new PrintMessageWork("b");
         PrintMessageWork c = new PrintMessageWork("c");
         PrintMessageWork d = new PrintMessageWork("d");
-
         PrintMessageWork e = new PrintMessageWork("e");
         PrintMessageWork f = new PrintMessageWork("f");
-
         PrintMessageWork g = new PrintMessageWork("g");
         PrintMessageWork h = new PrintMessageWork("h");
 

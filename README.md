@@ -92,6 +92,37 @@ WorkFlow flow = aNewSequentialFlow(
 );
 aNewWorkFlowEngine().run(flow, new WorkContext());
 ```
+## Pause Workflow
+Now(from v1.0.5) the workflow support the `break point`, which can pause the workflow, do something 
+then recovery the workflow. You can use it in `Any` position of the workflow.
+
+For example, you can break the point at `c` work, and then recovery to execute.
+
+This workflow can be illustrated as follows:
+<p align="center">
+    <img src="./img/point.png" width="70%">
+</p>
+
+This workflow can be implemented with the following snippet:
+```java
+SequentialFlow flow = aNewSequentialFlow(
+    aNewRepeatFlow(a).times(3),
+    aNewSequentialFlow(b,aNamePointWork(c).point("C_BREAK_POINT"),d),
+    aNewConditionalFlow(
+        aNewParallelFlow(e,f).withAutoShutDown(true)
+    ).when(
+        WorkReportPredicate.COMPLETED,
+        g,
+        h
+    ),
+    z
+);
+//execute to the break point
+flow.execute("C_BREAK_POINT");
+System.out.println("execute to the break point `C_BREAK_POINT`");
+//recovery execute from the `C_BREAK_POINT` to the end.
+flow.execute();
+```
 
 This is not a very useful workflow, but just to give you an idea about how to write workflows with Easy Work.
 

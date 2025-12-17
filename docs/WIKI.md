@@ -86,14 +86,19 @@ Work doSomeWork = context -> {
 A class that decorates the `work` interface, which can <b>name</b> the `work` interface, allowing differentiation in the process results via `workName`.
 
 This is crucial as it serves as a shortcut for quickly retrieving results within the process chain. 
+At the same time, this class supports `break point` mode, which can pause the workflow through breakpoints
+
 
 An example of defining a NamedPointWork is:
 
 ```java
 PrintMessageWork work4 = new PrintMessageWork("ok");
-aNamePointWork(work4).named("work4");
+aNamePointWork(work4).named("work4").point("WORK_4");
 ```
 Note: Your custom `Work` will be decorated with `NamedPointWork` in the process and automatically generate a name to support the subsequent `trace` function.
+
+If `Work` has already been customized with `NamedPointWork` decoration, it will no longer be processed
+
 
 
 ## The WorkReport interface
@@ -355,7 +360,7 @@ public interface ThenStep extends WorkFlow {
 
     WorkFlow then(Function<WorkReport, Work> fun);
 
-    WorkFlow then(Work... works);
+    WorkFlow then(Work work);
 
 }
 ```
@@ -487,6 +492,44 @@ WorkReport workReport = aNewSequentialFlow(work1, work2, work3).execute();
 ```
 
 At this point, custom context information can be passed through the `context()` method.
+
+## Pause Workflow
+You can set a `break point` to pause the workflow, which can be decorated with `NamedPointWork` and set `break point`. Use the `execute (String point)` method to execute to the corresponding `break point`.
+
+Ignore breakpoint execution through the ` Execute() ` method, and execute from the pause if the workflow has been paused.
+
+A reference breakpoint example is (for more examples, please refer to `test/java/**Point`):
+
+```java
+PrintMessageWork a = new PrintMessageWork("a");
+PrintMessageWork b = new PrintMessageWork("b");
+PrintMessageWork c = new PrintMessageWork("c");
+PrintMessageWork d = new PrintMessageWork("d");
+PrintMessageWork e = new PrintMessageWork("e");
+PrintMessageWork f = new PrintMessageWork("f");
+PrintMessageWork g = new PrintMessageWork("g");
+PrintMessageWork h = new PrintMessageWork("h");
+
+SequentialFlow flow =  aNewSequentialFlow(
+    a,
+    b,
+    aNewSequentialFlow(aNamePointWork(c).named("THE_C").point("CC"),d),
+    e
+    ).then(f).then(aNamePointWork(g).named("THE_G").point("GG")).then(h);
+flow.execute("CC");
+System.out.println("execute to CC..");
+flow.execute("GG");
+System.out.println("execute to GG..");
+flow.execute("");
+```
+You can set breakpoints at `any` position in the 6 built-in processes of Easy Work, and you can set any number of breakpoints. 
+
+Please note the following points:
+
+1. The breakpoint only supports decorating the `Work` interface and does not support decorating the `WorkFlow` interface
+2. Setting breakpoints for `Work` in `ParallelWorkFlow` will be ignored to ensure concurrent execution of `Work`
+3. The `then` method also supports breakpoint execution
+4. The `last` method does not support breakpoint execution because it always executes
 
 # Get the workflow results
 

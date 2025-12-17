@@ -1,4 +1,5 @@
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.flow.SequentialFlow;
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import work.PrintMessageWork;
@@ -8,9 +9,11 @@ import static com.baomibing.work.flow.ConditionalFlow.aNewConditionalFlow;
 import static com.baomibing.work.flow.ParallelFlow.aNewParallelFlow;
 import static com.baomibing.work.flow.RepeatFlow.aNewRepeatFlow;
 import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
+import static com.baomibing.work.work.NamedPointWork.aNamePointWork;
 
 public class ExampleTest {
-    public static void main(String[] args) {
+
+    private static void example() {
         //example in README
         PrintMessageWork a = new PrintMessageWork("a");
         PrintMessageWork b = new PrintMessageWork("b");
@@ -35,5 +38,38 @@ public class ExampleTest {
             z
         );
         aNewWorkFlowEngine().run(flow, new WorkContext());
+    }
+
+    private static void examplePoint() {
+        //example in README
+        PrintMessageWork a = new PrintMessageWork("a");
+        PrintMessageWork b = new PrintMessageWork("b");
+        PrintMessageWork c = new PrintMessageWork("c");
+        PrintMessageWork d = new PrintMessageWork("d");
+        PrintMessageWork e = new PrintMessageWork("e");
+        PrintMessageWork f = new PrintMessageWork("f");
+        PrintMessageWork g = new PrintMessageWork("g");
+        PrintMessageWork h = new PrintMessageWork("h");
+        PrintMessageWork z = new PrintMessageWork("z");
+
+        SequentialFlow flow = aNewSequentialFlow(
+            aNewRepeatFlow(a).times(3),
+            aNewSequentialFlow(b,aNamePointWork(c).named("C").point("C_BREAK_POINT"),d),
+            aNewConditionalFlow(
+                aNewParallelFlow(e,f).withAutoShutDown(true)
+            ).when(
+                WorkReportPredicate.COMPLETED,
+                g,
+                h
+            ),
+            z
+        );
+        flow.execute("C_BREAK_POINT");
+        System.out.println("execute to the break point `C_BREAK_POINT`");
+        flow.execute();
+    }
+
+    public static void main(String[] args) {
+        examplePoint();
     }
 }
