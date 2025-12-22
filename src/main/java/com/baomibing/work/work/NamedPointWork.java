@@ -16,13 +16,19 @@
 package com.baomibing.work.work;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.listener.WorkExecuteListener;
 import lombok.Getter;
 
-import java.util.UUID;
-
+/**
+ * A Work class that can name, set breakpoints, and add execution listeners.
+ *
+ * @author zening (316279829@qq.com)
+ */
 public class NamedPointWork extends NamedWork {
 
     private final Work work;
+    @Getter
+    private WorkExecuteListener workExecuteListener;
     @Getter
     private String point;
 
@@ -53,4 +59,10 @@ public class NamedPointWork extends NamedWork {
         this.beExecuted = true;
         return work.execute(context);
     }
+
+    public NamedPointWork addWorkExecuteListener(WorkExecuteListener workExecuteListener) {
+        this.workExecuteListener = workExecuteListener;
+        return this;
+    }
+
 }

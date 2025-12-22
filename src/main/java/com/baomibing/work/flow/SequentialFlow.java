@@ -19,6 +19,7 @@ import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.report.*;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
+import com.google.common.collect.Iterables;
 
 import java.util.Arrays;
 import java.util.List;
@@ -108,6 +109,26 @@ public class SequentialFlow extends AbstractWorkFlow {
 
     public static SequentialFlow aNewSequentialFlow(Work... works) {
         return new SequentialFlow(Arrays.asList(works));
+    }
+
+    //dynamic add work
+    public SequentialFlow addWork(Work work) {
+        int index = Iterables.indexOf(workList, w -> w instanceof EndWork);
+        workList.add(index, work);
+        return this;
+    }
+
+    //dynamic add work at index
+    public SequentialFlow addWork(int index, Work work) {
+        int endWorkIndex = Iterables.indexOf(workList, w -> w instanceof EndWork);
+        if (index < 0) {
+            index = 0;
+        }
+        if (index > endWorkIndex) {
+            index = endWorkIndex;
+        }
+        workList.add(index, work);
+        return this;
     }
 
     public SequentialFlow named(String name) {
