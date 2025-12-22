@@ -17,6 +17,7 @@ package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.exception.WorkFlowException;
+import com.baomibing.work.listener.WorkExecuteListener;
 import com.baomibing.work.report.*;
 import com.baomibing.work.step.LastStep;
 import com.baomibing.work.step.ThenStep;
@@ -192,7 +193,13 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
             Object object = work.execute(context);
                 workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
                 if (work instanceof NamedPointWork) {
+                    NamedPointWork pointWork = (NamedPointWork)work;
                     ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
+                    WorkExecuteListener listener = pointWork.getWorkExecuteListener();
+                    //execute work listener
+                    if (Checker.BeNotNull(listener)) {
+                        listener.onWorkExecute((DefaultWorkReport) workReport, context, null);
+                    }
                 }
 
             if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
@@ -202,6 +209,8 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
         return workReport;
     }
 
+
+
     protected WorkReport doSingleWork(Work work, WorkContext context, String point) {
         WorkReport workReport ;
         try {
@@ -209,7 +218,13 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
         } catch (Exception e) {
             workReport = new DefaultWorkReport().setError(e).setWorkContext(context).setResult(null).setStatus(FAILED);
             if (work instanceof NamedPointWork) {
+                NamedPointWork pointWork = (NamedPointWork)work;
                 ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
+                WorkExecuteListener listener = pointWork.getWorkExecuteListener();
+                //execute work listener
+                if (Checker.BeNotNull(listener)) {
+                    listener.onWorkExecute((DefaultWorkReport) workReport, context, e);
+                }
             }
             if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
                 ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(WorkStatus.STOPPED);

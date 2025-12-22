@@ -192,6 +192,25 @@ public class LoopFlow extends AbstractWorkFlow {
         return this;
     }
 
+    //dynamic add work
+    public LoopFlow addWork(Work work) {
+        workList.add(work);
+        return this;
+    }
+
+    //dynamic add work at index
+    public LoopFlow addWork(int index, Work work) {
+        int enIndex = workList.size() - 1;
+        if (index < 0) {
+            index = 0;
+        }
+        if (index > enIndex) {
+            index = enIndex;
+        }
+        workList.add(index, work);
+        return this;
+    }
+
     public static LoopFlow aNewLoopFlow(Work... works) {
         return new LoopFlow(Arrays.asList(works));
     }

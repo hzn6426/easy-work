@@ -190,6 +190,12 @@ To create a `SequentialFlow`, you can refer to the following example(`test/java/
 ```java
 WorkFlow flow = aNewSequentialFlow(work1, work2, work3);
 ```
+You can dynamically add the corresponding Work through the provided methods in addition to the constructor:
+
+1. `addWork(Work work)` Method to add Work to the end
+2. `addWork(int index, Work work)` Method to add Work to the corresponding location
+
+Note: The Work added by the above methods is always before the Work corresponding to the `then` method
 
 ## ParallelFlow
 A `ParallelFlow` is executed in `parallel` on its work units. It is considered complete only when all work units have been executed. The flow returns a `ParallelWorkReport` containing the results of concurrent execution, which is determined by the policy.
@@ -203,6 +209,11 @@ To create a `ParallelFlow`, you can refer to the following example(`test/java/Te
 ```java
 WorkFlow flow = aNewParallelFlow(work1, work2, exceptionWork, work3);
 ```
+You can dynamically add the corresponding Work through the provided methods in addition to the constructor:
+
+1. `addWork(Work work)` Method to add Work to the end
+
+Note: The Work added by the above methods is always before the Work corresponding to the `then` method
 
 ## ChooseFlow
 A `ChooseFlow` selects and executes the corresponding work unit through multiple conditional branches. If none of the branch conditions are met,
@@ -220,7 +231,7 @@ WorkFlow flow = aNewChooseFlow(work)
     .otherWise(work4);
 ```
 ## LoopFlow
-A `LoopFlow` is a sequential loop execution of its work units, which can be applied through a set `policy` to interrupt the loop, or through corresponding custom logic judgment to interrupt the loop, as follows:
+A `LoopFlow` is a sequential <b>infinite</b> loop execution of its work units,Until the interruption condition is met, which can be applied through a set `policy` to interrupt the loop, or through corresponding custom logic judgment to interrupt the loop, as follows:
 
 1. Set the interrupt condition through the method `withBreakPredicte`, interrupt the loop when the condition is met, and return the result of the last execution.
 2. Set to skip a certain work unit through the method `withContinuePredicate`
@@ -231,6 +242,12 @@ To create a `LoopFlow`，you can refer to the following example(`test/java/TestL
 ```java
 WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withBreakPredicate(LoopIndexPredicate.indexPredicate(2));
 ```
+You can dynamically add the corresponding Work through the provided methods in addition to the constructor:
+
+1. `addWork(Work work)` Method to add Work to the end
+2. `addWork(int index, Work work)` Method to add Work to the corresponding location
+
+Note: The Work added by the above methods is always before the Work corresponding to the `then` method
 
 # Build workflow
 
@@ -605,4 +622,20 @@ for (Map.Entry<String, WorkReport> entry : map2.entrySet()) {
     System.out.println(report.getClass().getName());
 }
 ```
+
+## Listener
+You can configure the addition of listeners through the `aNamePointWork` class. As long as the `Work` is executed (or may fail to execute due to policies), the listener will always be called back.
+
+An example of adding a listener is as follows:
+```java
+WorkExecuteListener listener = (DefaultWorkReport report, WorkContext workContext, Exception ex) -> {
+    System.out.println(report.getStatus() == WorkStatus.COMPLETED ? "YES, SUCCESS" : "NO, FAILURE");
+};
+SequentialFlow flow = aNewSequentialFlow(a, aNamePointWork(b).addWorkExecuteListener(listener), c);
+```
+The listener provides three parameters:
+
+1. The result returned by the `Work` can be used to obtain the execution status, and the success can be determined based on the status
+2. `Context` information during the execution of the `Work`
+3. The `exception` information of Work execution, exception only has a value when the execution fails
 

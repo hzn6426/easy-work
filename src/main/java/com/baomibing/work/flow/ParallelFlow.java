@@ -23,6 +23,7 @@ import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.foldright.cffu2.Cffu;
 import io.foldright.cffu2.CffuFactory;
@@ -201,6 +202,15 @@ public class ParallelFlow extends AbstractWorkFlow {
     @Override
     public ParallelFlow then(Work work) {
         thenFuns.add(report -> work);
+        return this;
+    }
+
+    //dynamic add work
+    public ParallelFlow addWork(Work work) {
+        NamedParallelWork parallelWork = (NamedParallelWork) Iterables.find(workList, w -> w instanceof NamedParallelWork);
+        if (parallelWork != null) {
+            parallelWork.addWork(work);
+        }
         return this;
     }
 

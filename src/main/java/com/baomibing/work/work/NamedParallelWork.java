@@ -45,4 +45,8 @@ public class NamedParallelWork extends NamedWork {
         //ignore
         return null;
     }
+
+    public void addWork(Work work) {
+        supplierWorks.add(work);
+    }
 }

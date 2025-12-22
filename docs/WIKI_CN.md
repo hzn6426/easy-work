@@ -84,6 +84,12 @@ Work doSomeWork = context -> {
 PrintMessageWork work4 = new PrintMessageWork("ok");
 aNamePointWork(work4).named("work4").point("WORK_4");
 ```
+你还可以通过 `NamedPointWork` 来添加监听器，监听器会在 `Work` 执行后进行回调，具体列子为：
+```java
+aNamePointWork(b).addWorkExecuteListener((DefaultWorkReport report, WorkContext workContext, Exception ex) -> {
+    System.out.println(report.getStatus() == WorkStatus.COMPLETED ? "YES, SUCCESS" : "NO, FAILURE");
+})
+```
 注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持，如果 `Work` 已经被自定义 `NamedPointWork` 装饰，不会再对此进行处理。
 
 ## 流程结果
@@ -167,6 +173,11 @@ WorkFlow flow = aNewRepeatFlow(repeatWork).until(WorkReportPredicate.FAILED);
 ```java
 WorkFlow flow = aNewSequentialFlow(work1, work2, work3);
 ```
+你可以在除了构造函数之外通过提供的方法来动态添加对应的 Work:
+1. `addWork(Work work)` 方法将 Work 添加到最后
+2. `addWork(int index, Work work)` 方法将 Work 添加到对应的位置
+
+注意：以上方法添加的 Work 总是在 `then` 方法对应的 Work 之前
 
 ## ParallelFlow
 一个`ParallelFlow`是对其中的工作单元`并行`执行，当所有的工作单元执行完成后才算完成，流程返回一个 `ParallelWorkReport`，包含并发执行的结果，具体由设置的策略决定。
@@ -179,6 +190,10 @@ WorkFlow flow = aNewSequentialFlow(work1, work2, work3);
 ```java
 WorkFlow flow = aNewParallelFlow(work1, work2, exceptionWork, work3);
 ```
+你可以在除了构造函数之外通过提供的方法来动态添加对应的 Work:
+1. `addWork(Work work)` 方法将 Work 添加到最后
+
+注意：以上方法添加的 Work 总是在 `then` 方法对应的 Work 之前
 
 ## ChooseFlow
 一个`ChooseFlow` 是通过多个条件分支 来选择执行对应的工作单元，如果分支条件都不满足，
@@ -196,7 +211,7 @@ WorkFlow flow = aNewChooseFlow(work)
     .otherWise(work4);
 ```
 ## LoopFlow
-一个`LoopFlow` 是对其中的工作单元`顺序循环`执行，可通过设置的`策略`来应用循环的中断的方式，也可以通过对应的自定义逻辑判断来中断循环，具体如下：
+一个`LoopFlow` 是对其中的工作单元<b>无限</b>`顺序循环`执行，直到满足中断条件，可通过设置的`策略`来应用循环的中断的方式，也可以通过对应的自定义逻辑判断来中断循环，具体如下：
 1. 通过方法`withBreakPredicate`来设置中断条件，满足条件后中断循环，返回最后一次执行的结果
 2. 通过方法`withContinuePredicate`来设置跳过某个工作单元
 
@@ -206,6 +221,11 @@ WorkFlow flow = aNewChooseFlow(work)
 ```java
 WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withBreakPredicate(LoopIndexPredicate.indexPredicate(2));
 ```
+你可以在除了构造函数之外通过提供的方法来动态添加对应的 Work:
+1. `addWork(Work work)` 方法将 Work 添加到最后
+2. `addWork(int index, Work work)` 方法将 Work 添加到对应的位置
+
+注意：以上方法添加的 Work 总是在 `then` 方法对应的 Work 之前
 
 # 构建工作流
 
@@ -554,3 +574,16 @@ for (Map.Entry<String, WorkReport> entry : map2.entrySet()) {
     System.out.println(report.getClass().getName());
 }
 ```
+
+## 监听器
+你可以通过 `aNamePointWork`类添加监听器的配置，只要 Work执行（可能因为策略导致无法执行），监听器总会回调，添加监听器的例子为：
+```java
+WorkExecuteListener listener = (DefaultWorkReport report, WorkContext workContext, Exception ex) -> {
+    System.out.println(report.getStatus() == WorkStatus.COMPLETED ? "YES, SUCCESS" : "NO, FAILURE");
+};
+SequentialFlow flow = aNewSequentialFlow(a, aNamePointWork(b).addWorkExecuteListener(listener), c);
+```
+监听器提供了 3 个参数：
+1. 该 Work 返回的结果，可以从结果中获取执行的状态，根据状态来判断是否成功
+2. 执行该 Work 时的 `context` 上下文信息
+3. Work 执行异常时的异常信息，只有在执行失败时才有值

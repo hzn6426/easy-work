@@ -99,7 +99,7 @@ aNewWorkFlowEngine().run(flow, new WorkContext());
 
 此工作流说明如下：
 <p align="center">
-    <img src="./img/point.png" width="70%">
+    <img src="../img/point.png" width="70%">
 </p>
 
 此工作流可以通过以下代码段实现：
