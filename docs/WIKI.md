@@ -99,7 +99,28 @@ Note: Your custom `Work` will be decorated with `NamedPointWork` in the process 
 
 If `Work` has already been customized with `NamedPointWork` decoration, it will no longer be processed
 
+## The AsyncWork
+A class that decorates the `Work` interface. The `Work` interface wrapped in this class will execute asynchronously and ignore waiting, directly setting the result to `Complete`. 
+Therefore, this class will not block the execution of the process.
 
+This class is mainly used to define tasks that need to be executed for a long time. Listeners can be added through `NamedPointWork` to listen for the execution results, or the `isBeDone()` method can be used to determine whether the execution has ended.
+
+Define an example of `AsyncWork` as (For more examples, refer to test/Java/AsyncWorkTest):
+
+```java
+PrintMessageWork a = new PrintMessageWork("a");
+LongWaitPrintMessageWork b = new LongWaitPrintMessageWork("execute in 10 seconds,that a long work...");
+PrintMessageWork c = new PrintMessageWork("c");
+PrintMessageWork d = new PrintMessageWork("d");
+WorkExecuteListener listener = new WorkExecuteListener() {
+    @Override
+    public void onWorkExecute(DefaultWorkReport workReport, WorkContext workContext, Exception exception) {
+        System.out.println("execute finished");
+    }
+};
+SequentialFlow flow = aNewSequentialFlow(a,  aNamePointWork(aNewAsyncWork(b).withAutoShutDown(true)).addWorkExecuteListener(listener),c, d);
+aNewWorkFlowEngine().run(flow, new WorkContext());
+```
 
 ## The WorkReport interface
 After the process is executed, the result will be encapsulated into the `WorkReport` interface. The following is the `WorkReport` interface:
@@ -639,3 +660,23 @@ The listener provides three parameters:
 2. `Context` information during the execution of the `Work`
 3. The `exception` information of Work execution, exception only has a value when the execution fails
 
+# The predicate 
+All `Predicate`s in `Easy Work` are implementations of the `WorkReportPredicate` interface, primarily used for conditional decision-making in `ConditionalFlow` and `ChooseFlow`.
+
+Starting from version 1.0.7, various types have been added to assist with conditional decision-making. For more examples, please refer to
+(test/java/RoutePredicateTest).
+
+## The AllPredicate 
+Match the result of the process execution (`MultipleWorkReport` type). If all `WorkReport` within it meet the conditions, it returns `true`; otherwise, it returns `false`
+
+## The AnyPredicate
+Match the process results, and if one of the `WorkReports` within it meets the condition, it returns `true`; otherwise, it is returns `false`.
+
+## The NonePredicate
+Match the process results. If none of the `WorkReports` in it meet the condition, it returns `true`; otherwise, it is returns `false`.
+
+## The AndPredicate
+Match the process results, and if the `WorkReport` within it meets `all` the set combination conditions, it returns `true`; otherwise, it is returns `false`.
+
+## The OrPredicate
+Match the process results, and if the `WorkReport` within it meets `any` set combination condition, it returns `true`; otherwise, it is returns `false`.

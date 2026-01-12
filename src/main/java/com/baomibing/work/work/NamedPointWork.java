@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2025-2025, zening (316279828@qq.com).
+/*
+ * Copyright (c) 2025-2026, zening (316279828@qq.com).
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -12,6 +12,7 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
 package com.baomibing.work.work;
 
@@ -26,6 +27,7 @@ import lombok.Getter;
  */
 public class NamedPointWork extends NamedWork {
 
+    @Getter
     private final Work work;
     @Getter
     private WorkExecuteListener workExecuteListener;
@@ -40,6 +42,10 @@ public class NamedPointWork extends NamedWork {
     }
 
     public NamedPointWork(Work work) {
+        if (work instanceof AsyncWork) {
+            AsyncWork asyncWork = (AsyncWork) work;
+            asyncWork.setWorkName(name);
+        }
         this.work = work;
     }
 
@@ -51,6 +57,10 @@ public class NamedPointWork extends NamedWork {
     @Override
     public NamedPointWork named(String name) {
         this.name = name;
+        if (work instanceof AsyncWork) {
+            AsyncWork asyncWork = (AsyncWork) work;
+            asyncWork.setWorkName(name);
+        }
         return this;
     }
 
@@ -62,6 +72,10 @@ public class NamedPointWork extends NamedWork {
 
     public NamedPointWork addWorkExecuteListener(WorkExecuteListener workExecuteListener) {
         this.workExecuteListener = workExecuteListener;
+        if (work instanceof AsyncWork) {
+            AsyncWork asyncWork = (AsyncWork) work;
+            asyncWork.setWorkExecuteListener(workExecuteListener);
+        }
         return this;
     }
 

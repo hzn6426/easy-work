@@ -14,34 +14,29 @@
  * the License.
  *
  */
-package com.baomibing.work.work;
+package com.baomibing.work.predicate;
 
-import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.predicate.WorkReportPredicate;
-import lombok.Getter;
+import com.baomibing.work.report.WorkReport;
 
-public class NamedOtherWiseWork extends  NamedWork {
+import java.util.function.Predicate;
 
-    @Getter
-    private Work work;
+/**
+ * All predicate for work report
+ *
+ * @author zening (316279829@qq.com)
+ */
+public class AllPredicate extends AbstractPredicate {
 
-    private NamedOtherWiseWork(Work work) {
-        this.work = work;
+    private AllPredicate(Predicate<WorkReport> predicate) {
+        this.predicate = predicate;
     }
 
-    public static NamedOtherWiseWork aNewNamedOtherWiseWork( Work work) {
-        return new NamedOtherWiseWork( work);
-    }
-
-    @Override
-    public NamedOtherWiseWork named(String name) {
-        this.name = name;
-        return this;
+    public static AllPredicate allPredicate(Predicate<WorkReport> predicate) {
+        return new AllPredicate(predicate);
     }
 
     @Override
-    public Object execute(WorkContext context) {
-        //ignore
-        return null;
+    public boolean apply(WorkReport workReport) {
+        return wrap(workReport).stream().allMatch(predicate);
     }
 }

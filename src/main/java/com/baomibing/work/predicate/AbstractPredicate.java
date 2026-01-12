@@ -16,22 +16,29 @@
  */
 package com.baomibing.work.predicate;
 
-
+import com.baomibing.work.report.DefaultWorkReport;
+import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.WorkReport;
-import com.baomibing.work.work.Work;
-import com.baomibing.work.work.WorkStatus;
+import com.google.common.collect.Lists;
+
+import java.util.List;
+import java.util.function.Predicate;
+
 /**
- * A predicate interface on work report.
+ * Abstract predicate for all and or any none predicate
  *
  * @author zening (316279829@qq.com)
  */
-@FunctionalInterface
-public interface WorkReportPredicate {
+public abstract class AbstractPredicate implements WorkReportPredicate {
 
-    boolean apply(WorkReport workReport);
+    protected Predicate<WorkReport> predicate;
 
-    WorkReportPredicate ALWAYS_TRUE = workReport -> true;
-    WorkReportPredicate ALWAYS_FALSE = workReport -> false;
-    WorkReportPredicate COMPLETED = workReport -> workReport.getStatus().equals(WorkStatus.COMPLETED);
-    WorkReportPredicate FAILED = workReport -> workReport.getStatus().equals(WorkStatus.FAILED);
+    List<WorkReport> wrap(WorkReport workReport) {
+        if (workReport instanceof DefaultWorkReport) {
+            return Lists.newArrayList(workReport);
+        } else if (workReport instanceof MultipleWorkReport) {
+            return ((MultipleWorkReport) workReport).getReports();
+        }
+        return Lists.newArrayList(workReport);
+    }
 }
