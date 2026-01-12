@@ -92,6 +92,26 @@ aNamePointWork(b).addWorkExecuteListener((DefaultWorkReport report, WorkContext 
 ```
 注意：你自定义的 `Work` 在流程中都会被 `NamedPointWork` 装饰，并自动生成一个名称，这是为后续 `trace` 功能提供支持，如果 `Work` 已经被自定义 `NamedPointWork` 装饰，不会再对此进行处理。
 
+## AsyncWork 类
+一个修饰`Work`接口的类，用该类包裹的 `Work` 接口将异步执行并忽略等待，直接将结果设置为 COMPLETE，因此该类不会都塞流程的执行。
+该类主要用来定义长时间执行的任务，可通过 `NamedPointWork` 来添加监听器，监听执行的结果，或者通过 `isBeDone()` 方法来判断是否执行结束。
+
+定义一个AsyncWork的例子为(更多例子参考test/java/AsyncWorkTest):
+```java
+PrintMessageWork a = new PrintMessageWork("a");
+LongWaitPrintMessageWork b = new LongWaitPrintMessageWork("execute in 10 seconds,that a long work...");
+PrintMessageWork c = new PrintMessageWork("c");
+PrintMessageWork d = new PrintMessageWork("d");
+WorkExecuteListener listener = new WorkExecuteListener() {
+    @Override
+    public void onWorkExecute(DefaultWorkReport workReport, WorkContext workContext, Exception exception) {
+        System.out.println("execute finished");
+    }
+};
+SequentialFlow flow = aNewSequentialFlow(a,  aNamePointWork(aNewAsyncWork(b).withAutoShutDown(true)).addWorkExecuteListener(listener),c, d);
+aNewWorkFlowEngine().run(flow, new WorkContext());
+```
+
 ## 流程结果
 流程执行后结果会被封装到 `WorkReport` 接口中，以下是`WorkReport` 接口:
 ```java
@@ -587,3 +607,22 @@ SequentialFlow flow = aNewSequentialFlow(a, aNamePointWork(b).addWorkExecuteList
 1. 该 Work 返回的结果，可以从结果中获取执行的状态，根据状态来判断是否成功
 2. 执行该 Work 时的 `context` 上下文信息
 3. Work 执行异常时的异常信息，只有在执行失败时才有值
+
+# Predicate 条件
+Easy Work 中的 `Predicate` 都是 `WorkReportPredicate` 接口类型的实现, 主要用于在 `ConditionalFlow` 和 `ChooseFlow` 中进行条件决策。
+从 1.0.7版本开始添加了多种类型，辅助进行条件决策，更多例子请参考（test/java/RoutePredicateTest)。
+
+## AllPredicate 类
+对流程执行的结果（`MultipleWorkReport`类型）进行匹配，其内所有的 `WorkReport` 都满足条件，则为 `true`，否则为 `false`
+
+## AnyPredicate 类
+对流程结果进行匹配，其内所有的`WorkReport`有一个满足条件，则为`true`，否则为 `false`
+
+## NonePredicate 类
+对流程结果进行匹配，其内所有的`WorkReport`没有一个满足条件，则为`true`，否则为 `false`
+
+## AndPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足所有设置的组合条件时，则为`true`，否则为 `false`
+
+## OrPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足任何设置的组合条件时，则为`true`，否则为 `false`

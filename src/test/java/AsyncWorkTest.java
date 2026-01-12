@@ -17,66 +17,46 @@
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.SequentialFlow;
-import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.listener.WorkExecuteListener;
 import com.baomibing.work.report.DefaultWorkReport;
-import com.baomibing.work.work.WorkStatus;
-import work.DelayPrintMessageWork;
+import work.LongWaitPrintMessageWork;
 import work.PrintMessageWork;
 
 import static com.baomibing.work.enignee.WorkFlowEngineImpl.aNewWorkFlowEngine;
 import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
+import static com.baomibing.work.work.AsyncWork.aNewAsyncWork;
 import static com.baomibing.work.work.NamedPointWork.aNamePointWork;
 
-public class TestSequentialFlow {
+public class AsyncWorkTest {
 
-    private static void test1() {
-        PrintMessageWork work1 = new PrintMessageWork("hello");
-        DelayPrintMessageWork work2 = new DelayPrintMessageWork("world",3);
-        PrintMessageWork work3 = new PrintMessageWork("im sequential flow");
+    private static void testAsyncWork() {
+        PrintMessageWork a = new PrintMessageWork("a");
+        LongWaitPrintMessageWork b = new LongWaitPrintMessageWork("execute in 10 seconds,that a long work...");
+        PrintMessageWork c = new PrintMessageWork("c");
+        PrintMessageWork d = new PrintMessageWork("d");
 
-        WorkFlow flow = aNewSequentialFlow(work1, work2, work3);
+        SequentialFlow flow = aNewSequentialFlow(a,  aNewAsyncWork(b).withAutoShutDown(true),c, d);
         aNewWorkFlowEngine().run(flow, new WorkContext());
     }
 
-    private static void test2() {
+    private static void testAsyncWorkListener() {
         PrintMessageWork a = new PrintMessageWork("a");
-
-        PrintMessageWork b = new PrintMessageWork("b");
+        LongWaitPrintMessageWork b = new LongWaitPrintMessageWork("execute in 10 seconds,that a long work...");
         PrintMessageWork c = new PrintMessageWork("c");
         PrintMessageWork d = new PrintMessageWork("d");
-        PrintMessageWork e = new PrintMessageWork("e");
+        WorkExecuteListener listener = new WorkExecuteListener() {
 
-        SequentialFlow flow = aNewSequentialFlow(a, b, c);
-        flow.addWork(-1, d);
-        flow.addWork(20, e);
-
-        aNewWorkFlowEngine().run(flow, new WorkContext());
-
-    }
-
-    private static void test3() {
-        PrintMessageWork a = new PrintMessageWork("a");
-
-        PrintMessageWork b = new PrintMessageWork("b");
-        PrintMessageWork c = new PrintMessageWork("c");
-        PrintMessageWork d = new PrintMessageWork("d");
-        PrintMessageWork e = new PrintMessageWork("e");
-
-        WorkExecuteListener listener = (DefaultWorkReport report, WorkContext workContext, Exception ex) -> {
-            System.out.println(report.getStatus() == WorkStatus.COMPLETED ? "YES, SUCCESS" : "NO, FAILURE");
+            @Override
+            public void onWorkExecute(DefaultWorkReport workReport, WorkContext workContext, Exception exception) {
+                System.out.println("execute finished");
+            }
         };
-        SequentialFlow flow = aNewSequentialFlow(a, aNamePointWork(b).addWorkExecuteListener(listener), c);
-        flow.addWork(-1, d);
-        flow.addWork(20, e);
-
+        SequentialFlow flow = aNewSequentialFlow(a,  aNamePointWork(aNewAsyncWork(b).withAutoShutDown(true)).addWorkExecuteListener(listener),c, d);
         aNewWorkFlowEngine().run(flow, new WorkContext());
-
     }
 
     public static void main(String[] args) {
-
-        test3();
-
+//        testAsyncWork();
+        testAsyncWorkListener();
     }
 }

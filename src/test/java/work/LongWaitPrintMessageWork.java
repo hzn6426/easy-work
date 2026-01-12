@@ -14,34 +14,29 @@
  * the License.
  *
  */
-package com.baomibing.work.work;
+
+package work;
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.predicate.WorkReportPredicate;
-import lombok.Getter;
+import com.baomibing.work.report.DefaultWorkReport;
+import com.baomibing.work.work.AsyncWork;
+import com.baomibing.work.work.Work;
+import lombok.SneakyThrows;
 
-public class NamedOtherWiseWork extends  NamedWork {
+public class LongWaitPrintMessageWork implements Work {
 
-    @Getter
-    private Work work;
+    private final String message;
 
-    private NamedOtherWiseWork(Work work) {
-        this.work = work;
+    public LongWaitPrintMessageWork(String message) {
+        this.message = message;
     }
 
-    public static NamedOtherWiseWork aNewNamedOtherWiseWork( Work work) {
-        return new NamedOtherWiseWork( work);
-    }
-
+    @SneakyThrows
     @Override
-    public NamedOtherWiseWork named(String name) {
-        this.name = name;
-        return this;
-    }
-
-    @Override
-    public Object execute(WorkContext context) {
-        //ignore
-        return null;
+    public String execute(WorkContext workContext) {
+        System.out.println("long wait work start...");
+        Thread.sleep(10_000);
+        System.out.println(message);
+        return message;
     }
 }

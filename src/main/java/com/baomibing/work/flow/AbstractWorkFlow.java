@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2025-2025, zening (316279828@qq.com).
+/*
+ * Copyright (c) 2025-2026, zening (316279828@qq.com).
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -12,6 +12,7 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
 package com.baomibing.work.flow;
 
@@ -70,7 +71,7 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
     // works in queue which support the point
     protected LinkedList<Work> queue;
     // executed work report of the work flow
-    protected MultipleWorkReport  multipleWorkReport = aNewSequentialWorkReport();
+    protected MultipleWorkReport  multipleWorkReport = new MultipleWorkReport();
 
     public abstract MultipleWorkReport execute();
     public abstract MultipleWorkReport execute(String point);
@@ -191,16 +192,20 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
             workReport = workFlow.execute(context, point);
         } else {
             Object object = work.execute(context);
-                workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
-                if (work instanceof NamedPointWork) {
-                    NamedPointWork pointWork = (NamedPointWork)work;
-                    ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
-                    WorkExecuteListener listener = pointWork.getWorkExecuteListener();
-                    //execute work listener
-                    if (Checker.BeNotNull(listener)) {
+            workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
+            if (work instanceof NamedPointWork) {
+                NamedPointWork pointWork = (NamedPointWork)work;
+                ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
+                WorkExecuteListener listener = pointWork.getWorkExecuteListener();
+                //execute work listener
+                if (Checker.BeNotNull(listener)) {
+                    boolean beAsyncWork = pointWork.getWork() instanceof AsyncWork;
+                    //listener will be invoked by the async work
+                    if (!beAsyncWork) {
                         listener.onWorkExecute((DefaultWorkReport) workReport, context, null);
                     }
                 }
+            }
 
             if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
                 ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(STOPPED);

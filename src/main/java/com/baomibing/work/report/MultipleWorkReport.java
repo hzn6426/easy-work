@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2025-2025, zening (316279828@qq.com).
+/*
+ * Copyright (c) 2025-2026, zening (316279828@qq.com).
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -12,10 +12,12 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations under
  * the License.
+ *
  */
 package com.baomibing.work.report;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.WorkStatus;
 import lombok.Getter;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 /**
  * A default workflow execution result implementation, which contains multiple work reports.
@@ -154,5 +157,17 @@ public class MultipleWorkReport extends AbstractWorkReport {
         setError(source.getError());
         addAllReports(source.getReports());
 
+    }
+
+    public boolean anyMatch(Predicate<WorkReport> predicate) {
+        return reports.stream().anyMatch(predicate);
+    }
+
+    public boolean allMatch(Predicate<WorkReport> predicate) {
+        return reports.stream().allMatch(predicate);
+    }
+
+    public boolean noneMatch(Predicate<WorkReport> predicate) {
+        return reports.stream().noneMatch(predicate);
     }
 }
