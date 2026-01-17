@@ -16,20 +16,27 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
+import com.baomibing.work.json.JsonPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.ConditionalWorkReport;
 import com.baomibing.work.report.MultipleWorkReport;
+import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
-import com.baomibing.work.report.WorkReport;
+import org.apache.commons.lang3.EnumUtils;
 
 import java.util.function.Function;
 
 import static com.baomibing.work.report.ConditionalWorkReport.aNewConditionalWorkReport;
-import static com.baomibing.work.work.NamedDecideWork.aNewNamedDecideWork;
+import static com.baomibing.work.util.Parser.parse;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 import static com.baomibing.work.work.NamedConditionFalseWork.aNewNamedExecuteFalseWork;
 import static com.baomibing.work.work.NamedConditionTrueWork.aNewNamedExecuteTrueWork;
+import static com.baomibing.work.work.NamedDecideWork.aNewNamedDecideWork;
 
 /**
  * A conditional flow is defined by 4 artifacts:
@@ -52,8 +59,31 @@ public class ConditionalFlow extends AbstractWorkFlow {
         this.predicate = thePredicate;
         this.workList.add(aNewNamedDecideWork(wrapNamedPointWork(theWork)));
         this.workList.add(aNewNamedExecuteTrueWork(wrapNamedPointWork(trueWork)));
-        this.workList.add(aNewNamedExecuteFalseWork(wrapNamedPointWork(falseWork)));
+        if (Checker.BeNotNull(falseWork)) {
+            this.workList.add(aNewNamedExecuteFalseWork(wrapNamedPointWork(falseWork)));
+        }
         this.workList.add(new EndWork());
+    }
+
+    public static ConditionalFlow deserialize(JSONObject flow) {
+        assertNotNull(flow, ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONObject decideWork = flow.getJSONObject(Strings.DECIDE);
+        assertNotNull(decideWork, ExceptionEnum.DECIDE_WORK_NOT_BE_NULL);
+        JSONObject trueWork = flow.getJSONObject(Strings.TRUE_WORK);
+        assertNotNull(trueWork, ExceptionEnum.TRUE_WORK_NOT_BE_NULL);
+        JSONObject falseWork = flow.getJSONObject(Strings.FALSE_WORK);
+        JSONObject predicate = flow.getJSONObject(Strings.PREDICATE);
+        assertNotNull(predicate, ExceptionEnum.PREDICATE_NOT_BE_NULL);
+        ConditionalFlow conditionalFlow =  aNewConditionalFlow(deserializeWork(decideWork))
+            .when(parse(predicate.toJavaObject(JsonPredicate.class)), deserializeWork(trueWork), Checker.BeNull(falseWork) ? null : deserializeWork(falseWork));
+        conditionalFlow.named(flow.getString(Strings.NAME));
+        conditionalFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        conditionalFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+
+        //parse then work and lastly work
+        conditionalFlow.then(deserializeThenWork(flow));
+        conditionalFlow.lastly(deserializeLastWork(flow));
+        return conditionalFlow;
     }
 
     @Override
@@ -146,18 +176,24 @@ public class ConditionalFlow extends AbstractWorkFlow {
 
 
     public ConditionalFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public ConditionalFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public ConditionalFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 
@@ -168,13 +204,17 @@ public class ConditionalFlow extends AbstractWorkFlow {
 
     @Override
     public ConditionalFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public ConditionalFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 

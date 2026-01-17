@@ -1,0 +1,12 @@
+{
+  "type": "repeat",
+  "work": {
+     "type": "work.RepeatNestedPrintWork",
+     "message": "c"
+   },
+  "until": {
+    "left": "$result.$status",
+    "operator": "eq",
+    "right": "COMPLETED"
+  }
+}

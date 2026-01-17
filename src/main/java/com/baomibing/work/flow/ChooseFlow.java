@@ -16,22 +16,31 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
+import com.baomibing.work.exception.WorkFlowException;
+import com.baomibing.work.json.JsonPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.ChooseWorkReport;
 import com.baomibing.work.report.MultipleWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
-import com.baomibing.work.report.WorkReport;
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.lang3.EnumUtils;
 
 import java.util.List;
 import java.util.function.Function;
 
 import static com.baomibing.work.report.ChooseWorkReport.aNewChooseWorkReport;
+import static com.baomibing.work.util.Parser.parse;
+import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 import static com.baomibing.work.work.NamedDecideWork.aNewNamedDecideWork;
 import static com.baomibing.work.work.NamedOtherWiseWork.aNewNamedOtherWiseWork;
 import static com.baomibing.work.work.NamedWhenWork.aNewNamedWhenWork;
@@ -62,6 +71,38 @@ public class ChooseFlow extends AbstractWorkFlow {
         whenWorks.forEach(whenWork -> workList.add(aNewNamedWhenWork(whenWork.getPredicate(), wrapNamedPointWork(whenWork.getWork()))));
         this.workList.add(aNewNamedOtherWiseWork(wrapNamedPointWork(otherWiseWork)));
         this.workList.add(new EndWork());
+    }
+
+    public static ChooseFlow deserialize(JSONObject flow) {
+        assertNotNull(flow, ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONObject decideWork = flow.getJSONObject(Strings.DECIDE);
+        assertNotNull(decideWork, ExceptionEnum.DECIDE_WORK_NOT_BE_NULL);
+        JSONArray whenArray = flow.getJSONArray(Strings.WHEN);
+        assertNotEmpty(whenArray, ExceptionEnum.WHEN_NOT_BE_NULL_OR_EMPTY);
+        List<WhenWork> whenWorks = Lists.newArrayList();
+        for (int i = 0; i < whenArray.size(); i++) {
+            JSONObject whenJson = whenArray.getJSONObject(i);
+            JSONObject predicate = whenJson.getJSONObject(Strings.PREDICATE);
+            JSONObject work = whenJson.getJSONObject(Strings.WORK);
+            if (Checker.BeNull(predicate) && Checker.BeNull(work)) {
+                throw new WorkFlowException(ExceptionEnum.PREDICATE_OR_WORK_NOT_BE_NULL);
+            }
+            whenWorks.add(new WhenWork(parse(predicate.toJavaObject(JsonPredicate.class)), deserializeWork(work)));
+        }
+        JSONObject otherWise = flow.getJSONObject(Strings.OTHERWISE);
+        ChooseFlow chooseFlow = new ChooseFlow(deserializeWork(decideWork), whenWorks,  deserializeWork(otherWise));
+        chooseFlow.named(flow.getString(Strings.NAME));
+        chooseFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        chooseFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+        Boolean beShortLogic = flow.getBoolean(Strings.SHORT_LOGIC);
+        if (Checker.BeNotNull(beShortLogic)) {
+            chooseFlow.witShortLogic(beShortLogic);
+        }
+
+        //parse then work and lastly work
+        chooseFlow.then(deserializeThenWork(flow));
+        chooseFlow.lastly(deserializeLastWork(flow));
+        return chooseFlow;
     }
 
     @Override
@@ -168,18 +209,24 @@ public class ChooseFlow extends AbstractWorkFlow {
     }
 
     public ChooseFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public ChooseFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public ChooseFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 
@@ -190,13 +237,17 @@ public class ChooseFlow extends AbstractWorkFlow {
 
     @Override
     public ChooseFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public ChooseFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 

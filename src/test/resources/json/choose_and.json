@@ -1,0 +1,47 @@
+{
+  "type": "choose",
+  "shortLogic": false,
+  "decide": {
+    "type": "work.ChoosePrintMessageWork"
+  },
+  "when": [{
+    "predicate": {
+      "operator": "and",
+      "right": [{
+        "left" : "$result",
+        "operator": "ge",
+        "right": 1
+      },{
+        "left" : "$result",
+        "operator": "le",
+        "right": 5
+      }]
+    },
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "1-5"
+    }
+  },{
+    "predicate": {
+      "operator": "and",
+      "right": [{
+        "left" : "$result",
+        "operator": "ge",
+        "right": 6
+      },{
+        "left" : "$result",
+        "operator": "le",
+        "right": 9
+      }]
+    },
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "6-9"
+    }
+
+  }],
+  "otherwise": {
+    "type": "work.PrintMessageWork",
+    "message": "10"
+  }
+}

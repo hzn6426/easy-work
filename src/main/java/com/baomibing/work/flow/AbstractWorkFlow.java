@@ -17,9 +17,13 @@
 package com.baomibing.work.flow;
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
 import com.baomibing.work.listener.WorkExecuteListener;
-import com.baomibing.work.report.*;
+import com.baomibing.work.report.DefaultWorkReport;
+import com.baomibing.work.report.MultipleWorkReport;
+import com.baomibing.work.report.ParallelWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.step.LastStep;
 import com.baomibing.work.step.ThenStep;
 import com.baomibing.work.util.Checker;
@@ -32,7 +36,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
 import static com.baomibing.work.work.WorkStatus.*;
 
 /**
@@ -40,7 +43,7 @@ import static com.baomibing.work.work.WorkStatus.*;
  *
  * @author zening (316279829@qq.com)
  */
-public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWorkFlow {
+public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  ThenStep, LastStep, PointWorkFlow {
     @Getter
     protected String name = UUID.randomUUID().toString();
 
@@ -192,7 +195,12 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
             workReport = workFlow.execute(context, point);
         } else {
             Object object = work.execute(context);
-            workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
+            // Do not wrap it when work return an WorkReport.
+            if (object instanceof WorkReport) {
+                workReport = (WorkReport) object;
+            } else {
+                workReport = new DefaultWorkReport().setError(null).setWorkContext(context).setResult(object).setStatus(WorkStatus.COMPLETED);
+            }
             if (work instanceof NamedPointWork) {
                 NamedPointWork pointWork = (NamedPointWork)work;
                 ((DefaultWorkReport) workReport).setWorkName(((NamedPointWork)work).getName());
@@ -252,7 +260,7 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
             } else if (workExecutePolicy == WorkExecutePolicy.FAST_FAIL_EXCEPTION) {
                 return Checker.BeNotNull(workReport.getError());
             } else if (workExecutePolicy == WorkExecutePolicy.FAST_EXCEPTION) {
-                throw new WorkFlowException(workReport.getError());
+                throw new WorkFlowException(ExceptionEnum.WORK_EXECUTION_OCCUR_AN_ERROR, workReport.getError().getMessage());
             }
         } else if (workReport.getStatus() == COMPLETED) {
             return workExecutePolicy == WorkExecutePolicy.FAST_SUCCESS;
@@ -381,7 +389,7 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
             if (throwable instanceof RuntimeException) {
                 throw (RuntimeException) throwable;
             }
-            throw new WorkFlowException(workReport.getError());
+            throw new WorkFlowException(ExceptionEnum.WORK_EXECUTION_OCCUR_AN_ERROR, workReport.getError().getMessage());
         } else {
             workReport.setStatus(COMPLETED).setWorkContext(workContext);
         }
@@ -398,7 +406,7 @@ public abstract class AbstractWorkFlow implements  ThenStep, LastStep, PointWork
 
     private void assertReportNotEmpty(List<WorkReport> reports) {
         if (Checker.BeEmpty(reports)) {
-            throw new WorkFlowException("Work reports is empty!");
+            throw new WorkFlowException(ExceptionEnum.WORK_REPORTS_NOT_BE_EMPTY);
         }
     }
 

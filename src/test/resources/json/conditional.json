@@ -1,0 +1,20 @@
+{
+  "type": "conditional",
+  "decide": {
+    "type": "work.PrintMessageWork",
+    "message": "I am execute success"
+  },
+  "predicate": {
+    "left" : "$status",
+    "operator": "eq",
+    "right": "COMPLETED"
+  },
+  "trueWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do success"
+  },
+  "falseWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do fail"
+  }
+}

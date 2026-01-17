@@ -40,4 +40,16 @@ public class LoopIndexWorkReport extends DefaultWorkReport {
         this.status = workReport.getStatus();
         this.result = workReport.getResult();
     }
+
+    public LoopIndexWorkReport copy() {
+        LoopIndexWorkReport report = aNewLoopWorkReport();
+        report.setStatus(getStatus());
+        report.setWorkName(getWorkName());
+        report.setWorkContext(getWorkContext());
+        report.setError(getError());
+        report.setResult(getResult());
+        report.setIndex(index);
+        report.setLength(length);
+        return report;
+    }
 }

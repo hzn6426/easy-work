@@ -15,27 +15,19 @@
  *
  */
 
-package work;
+package com.baomibing.work.json;
 
-
-import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.Work;
-
-public class PrintMessageWork implements Work {
-
-    private final String message;
-
-    public PrintMessageWork(String message) {
-        this.message = message;
-    }
-
-    @Override
-    public String execute(WorkContext workContext) {
-        System.out.println(message);
-        return message;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(PrintMessageWork.class.getSimpleName());
-    }
+public enum OperatorEnum {
+    eq,
+    ne,
+    gt,
+    ge,
+    lt,
+    le,
+    contains,
+    ncontains,
+    empty,
+    nempty,
+    and,
+    or;
 }

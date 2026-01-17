@@ -17,7 +17,9 @@
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.flow.WorkFlow;
+import com.baomibing.work.predicate.TimesPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.util.Checker;
 import work.PrintMessageWork;
 import work.RepeatPrintWork;
 
@@ -32,6 +34,13 @@ public class TestRepeatFlow {
         aNewWorkFlowEngine().run(flow, new WorkContext());
     }
 
+    public static void testRetry() {
+        PrintMessageWork repeat = new PrintMessageWork("im repeat");
+        WorkFlow flow = aNewRepeatFlow(repeat).until(TimesPredicate.times(3,
+            workReport -> Checker.BeNull(workReport.getError())));
+        aNewWorkFlowEngine().run(flow, new WorkContext());
+    }
+
     public static void testRepeatUntil() {
         RepeatPrintWork repeat = new RepeatPrintWork("do the repeat.");
         WorkFlow flow = aNewRepeatFlow(repeat).until(WorkReportPredicate.FAILED);
@@ -40,5 +49,6 @@ public class TestRepeatFlow {
     public static void main(String[] args) {
 //        testRepeatTimes();
         testRepeatUntil();
+//        testRetry();
     }
 }

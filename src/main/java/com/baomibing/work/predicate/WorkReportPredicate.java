@@ -18,8 +18,8 @@ package com.baomibing.work.predicate;
 
 
 import com.baomibing.work.report.WorkReport;
-import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkStatus;
+
 /**
  * A predicate interface on work report.
  *
@@ -34,4 +34,5 @@ public interface WorkReportPredicate {
     WorkReportPredicate ALWAYS_FALSE = workReport -> false;
     WorkReportPredicate COMPLETED = workReport -> workReport.getStatus().equals(WorkStatus.COMPLETED);
     WorkReportPredicate FAILED = workReport -> workReport.getStatus().equals(WorkStatus.FAILED);
+
 }

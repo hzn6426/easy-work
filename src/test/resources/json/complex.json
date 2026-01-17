@@ -1,0 +1,37 @@
+{
+  "type": "sequential",
+  "works": [{
+    "type": "repeat",
+    "times": 3,
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "foo"
+    }
+  },{
+      "type": "conditional",
+      "decide": {
+        "type": "parallel",
+        "autoShutdown": true,
+        "works": [{
+          "type": "work.PrintMessageWork",
+          "message": "hello"
+        },{
+          "type": "work.PrintMessageWork",
+          "message": "world"
+        }]
+      },
+      "predicate": {
+        "left" : "$status",
+        "operator": "eq",
+        "right": "COMPLETED"
+      },
+      "trueWork": {
+        "type": "work.PrintMessageWork",
+        "message": "ok"
+      },
+      "falseWork": {
+        "type": "work.PrintMessageWork",
+        "message": "no ok"
+      }
+  }]
+}

@@ -17,7 +17,11 @@
 package com.baomibing.work.flow;
 
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
+import com.baomibing.work.json.JsonPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.LoopIndexWorkReport;
 import com.baomibing.work.report.LoopWorkReport;
@@ -25,8 +29,11 @@ import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
-import com.baomibing.work.work.*;
+import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
+import com.baomibing.work.work.WorkStatus;
 import com.google.common.collect.Iterables;
+import org.apache.commons.lang3.EnumUtils;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -34,6 +41,9 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
+import static com.baomibing.work.util.Parser.parse;
+import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 
 /**
  * A loop flow is defined by as follows:
@@ -57,11 +67,38 @@ public class LoopFlow extends AbstractWorkFlow {
     //loop index
     private int index = 0;
     //queue for poll operation, when execute `then` block, the poll is true
-    private boolean bePoll = false;
+    private boolean bePoll = true;
 
     private LoopFlow(List<Work> works) {
         works.forEach(work -> workList.add(wrapNamedPointWork(work)));
         indexReport.setLength(works.size());
+    }
+
+    public static LoopFlow deserialize(JSONObject flow) {
+        assertNotNull(flow, ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONArray workArray = flow.getJSONArray(Strings.WORKS);
+        assertNotEmpty(workArray, ExceptionEnum.WORKS_NOT_BE_NULL_OR_EMPTY);
+        LoopFlow loopFlow =  new LoopFlow(deserializeWorks(workArray));
+        loopFlow.named(flow.getString(Strings.NAME));
+        loopFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        loopFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+        Boolean beInfinite = flow.getBoolean(Strings.INFINITE);
+        if (Checker.BeNotNull(beInfinite)) {
+            loopFlow.withInfiniteLoop(beInfinite);
+        }
+        JSONObject breakPredicate = flow.getJSONObject(Strings.BREAK_PREDICATE);
+        if (Checker.BeNotNull(breakPredicate)) {
+            loopFlow.withBreakPredicate(parse(breakPredicate.toJavaObject(JsonPredicate.class)));
+        }
+        JSONObject continuePredicate = flow.getJSONObject(Strings.CONTINUE_PREDICATE);
+        if (Checker.BeNotNull(continuePredicate)) {
+            loopFlow.withContinuePredicate(parse(continuePredicate.toJavaObject(JsonPredicate.class)));
+        }
+
+        //parse then work and lastly work
+        loopFlow.then(deserializeThenWork(flow));
+        loopFlow.lastly(deserializeLastWork(flow));
+        return loopFlow;
     }
 
     @Override
@@ -114,12 +151,16 @@ public class LoopFlow extends AbstractWorkFlow {
         if (bePoll == false) {
             queue.offer(work);
         }
+        if (Checker.BeNull(work)) {
+            return;
+        }
 
         //cache the result
         WorkReport report = doSingleWork(work, workContext, point);
 
-        multipleWorkReport.addReport(report);
         indexReport.with(report);
+        multipleWorkReport.addReport(indexReport.copy());
+
         index++;
 
 
@@ -161,18 +202,24 @@ public class LoopFlow extends AbstractWorkFlow {
     }
 
     public LoopFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public LoopFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public LoopFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 
@@ -183,13 +230,17 @@ public class LoopFlow extends AbstractWorkFlow {
 
     @Override
     public LoopFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public LoopFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 
@@ -223,6 +274,11 @@ public class LoopFlow extends AbstractWorkFlow {
 
     public LoopFlow withContinuePredicate(WorkReportPredicate continuePredicate) {
         this.continuePredicate = continuePredicate;
+        return this;
+    }
+
+    public LoopFlow withInfiniteLoop(boolean beInfinite) {
+        this.bePoll = !beInfinite;
         return this;
     }
 

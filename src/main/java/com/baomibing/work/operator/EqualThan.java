@@ -15,27 +15,27 @@
  *
  */
 
-package work;
+package com.baomibing.work.operator;
 
+import com.baomibing.work.util.Checker;
 
-import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.Work;
+import java.util.Objects;
 
-public class PrintMessageWork implements Work {
+public class EqualThan extends AbstractOperatorPredicate {
 
-    private final String message;
-
-    public PrintMessageWork(String message) {
-        this.message = message;
+    public EqualThan(Object left, Object right) {
+        this.left = left;
+        this.right = right;
     }
 
     @Override
-    public String execute(WorkContext workContext) {
-        System.out.println(message);
-        return message;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(PrintMessageWork.class.getSimpleName());
+    public boolean test(Object o) {
+        this.report = o;
+        Object l = get(left);
+        Object r = get(right);
+        if (Checker.BeNull(l) || Checker.BeNull(r)) {
+            return false;
+        }
+        return  Objects.equals(l, r);
     }
 }

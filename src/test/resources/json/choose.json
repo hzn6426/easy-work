@@ -1,0 +1,34 @@
+{
+  "type": "choose",
+  "shortLogic": false,
+  "decide": {
+    "type": "work.PrintMessageWork",
+    "message": "I am execute success"
+  },
+  "when": [{
+    "predicate": {
+      "left" : "$result",
+      "operator": "eq",
+      "right": 1
+    },
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "1"
+    }
+  },{
+    "predicate": {
+      "left" : "$result",
+      "operator": "eq",
+      "right": 2
+    },
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "2"
+    }
+
+  }],
+  "otherwise": {
+    "type": "work.PrintMessageWork",
+    "message": "3"
+  }
+}
