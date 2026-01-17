@@ -19,23 +19,31 @@ package work;
 
 
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.report.DefaultWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkStatus;
 
-public class PrintMessageWork implements Work {
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.baomibing.work.report.DefaultWorkReport.aNewWorkReport;
+
+public class RepeatNestedPrintWork implements Work {
 
     private final String message;
+    private final AtomicInteger counter = new AtomicInteger();
 
-    public PrintMessageWork(String message) {
+    public RepeatNestedPrintWork(String message) {
         this.message = message;
     }
 
     @Override
-    public String execute(WorkContext workContext) {
-        System.out.println(message);
-        return message;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(PrintMessageWork.class.getSimpleName());
+    public WorkReport execute(WorkContext workContext) {
+        int count = counter.incrementAndGet();
+        System.out.println("the " + count + ":" + message);
+        if (count < 10) {
+            return aNewWorkReport();
+        }
+        return new DefaultWorkReport().setStatus(WorkStatus.FAILED).setWorkContext(workContext).setResult(aNewWorkReport());
     }
 }

@@ -15,27 +15,25 @@
  *
  */
 
-package work;
+package com.baomibing.work.operator;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.report.WorkReport;
 
-import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.Work;
+import java.util.List;
 
-public class PrintMessageWork implements Work {
+import static com.baomibing.work.util.Parser.parse;
 
-    private final String message;
+public class And extends AbstractOperatorPredicate{
 
-    public PrintMessageWork(String message) {
-        this.message = message;
+    public And(Object right) {
+        this.right = right;
     }
 
     @Override
-    public String execute(WorkContext workContext) {
-        System.out.println(message);
-        return message;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(PrintMessageWork.class.getSimpleName());
+    public boolean test(Object o) {
+        report = o;
+        List<JsonPredicate> predicates = right2Predicates();
+        return predicates.stream().allMatch(p -> parse(p).apply((WorkReport) report));
     }
 }

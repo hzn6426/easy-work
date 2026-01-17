@@ -18,6 +18,7 @@ package com.baomibing.work.work;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.listener.WorkExecuteListener;
+import com.baomibing.work.util.Checker;
 import lombok.Getter;
 
 /**
@@ -35,9 +36,13 @@ public class NamedPointWork extends NamedWork {
     private String point;
 
     @Getter
-    private boolean beExecuted = true;
+    private boolean beExecuted = false;
 
     public static NamedPointWork aNamePointWork(Work work) {
+        return new NamedPointWork(work);
+    }
+
+    public static NamedPointWork aNewNamePointWork(Work work) {
         return new NamedPointWork(work);
     }
 
@@ -50,7 +55,9 @@ public class NamedPointWork extends NamedWork {
     }
 
     public NamedPointWork point(String point) {
-        this.point = point;
+        if (Checker.BeNotEmpty(point)) {
+            this.point = point;
+        }
         return this;
     }
 

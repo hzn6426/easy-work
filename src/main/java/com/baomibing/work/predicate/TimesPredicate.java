@@ -18,6 +18,7 @@ package com.baomibing.work.predicate;
 
 
 import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.util.Checker;
 
 import java.util.concurrent.atomic.AtomicInteger;
 /**
@@ -31,16 +32,38 @@ public class TimesPredicate implements WorkReportPredicate {
 
     private final AtomicInteger counter = new AtomicInteger();
 
+    private WorkReportPredicate workReportPredicate;
+
     public TimesPredicate(int times) {
         this.times = times;
     }
 
+    /**
+     * When timesPredicate is true stop ,otherwise execute times
+     *
+     * @param times  execute times
+     * @param timesPredicate the predicate which stop the flow
+     */
+    public TimesPredicate(int times, WorkReportPredicate timesPredicate) {
+        this.times = times;
+        this.workReportPredicate = timesPredicate;
+    }
+
     @Override
     public boolean apply(WorkReport workReport) {
-        return counter.incrementAndGet() == times;
+        boolean beCountTrue = counter.incrementAndGet() == times;
+        if (Checker.BeNotNull(workReportPredicate) && workReportPredicate.apply(workReport)) {
+            return true;
+        }
+        return beCountTrue;
+
     }
 
     public static TimesPredicate times(int times) {
         return new TimesPredicate(times);
+    }
+
+    public static TimesPredicate times(int times, WorkReportPredicate reportPredicate) {
+        return new TimesPredicate(times, reportPredicate);
     }
 }

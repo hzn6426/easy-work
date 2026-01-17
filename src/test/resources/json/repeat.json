@@ -1,0 +1,8 @@
+{
+  "type": "repeat",
+  "work": {
+     "type": "work.PrintMessageWork",
+     "message": "c"
+   },
+  "times": 3
+}

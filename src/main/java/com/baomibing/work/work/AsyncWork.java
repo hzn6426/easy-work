@@ -38,7 +38,7 @@ public class AsyncWork implements Work {
     private static ExecutorService executor = null;
 
     @Getter
-    private boolean beDone;
+    private boolean beDone = false;
 
     private boolean autoShutdown = false;
 

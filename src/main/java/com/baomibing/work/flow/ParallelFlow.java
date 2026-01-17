@@ -16,7 +16,10 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
 import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.ParallelWorkReport;
@@ -29,6 +32,7 @@ import com.google.common.collect.Lists;
 import io.foldright.cffu2.Cffu;
 import io.foldright.cffu2.CffuFactory;
 import io.foldright.cffu2.MCffu;
+import org.apache.commons.lang3.EnumUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +42,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.baomibing.work.report.ParallelWorkReport.aNewParallelWorkReport;
+import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 import static com.baomibing.work.work.NamedParallelWork.aNewParallelWork;
 import static com.baomibing.work.work.WorkStatus.FAILED;
 
@@ -74,6 +80,30 @@ public class ParallelFlow extends AbstractWorkFlow {
         if (cffuFactory == null) {
             cffuFactory = CffuFactory.builder(executor).build();
         }
+    }
+
+    public static ParallelFlow deserialize(JSONObject flow) {
+        assertNotNull(flow,  ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONArray workArray = flow.getJSONArray(Strings.WORKS);
+        assertNotEmpty(workArray, ExceptionEnum.WORKS_NOT_BE_NULL_OR_EMPTY);
+        ParallelFlow parallelFlow =  new ParallelFlow(deserializeWorks(workArray));
+        parallelFlow.named(flow.getString(Strings.NAME));
+        parallelFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        parallelFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+
+        Integer timeoutInSeconds = flow.getInteger(Strings.TIMEOUT);
+        if (Checker.BeNotNull(timeoutInSeconds)) {
+            parallelFlow.withTimeoutInSeconds(timeoutInSeconds);
+        }
+        Boolean beAutoShutDown = flow.getBoolean(Strings.AUTO_SHUTDOWN);
+        if (Checker.BeNotNull(beAutoShutDown)) {
+            parallelFlow.withAutoShutDown(beAutoShutDown);
+        }
+
+        //parse then work and lastly work
+        parallelFlow.then(deserializeThenWork(flow));
+        parallelFlow.lastly(deserializeLastWork(flow));
+        return parallelFlow;
     }
 
     @Override
@@ -174,18 +204,24 @@ public class ParallelFlow extends AbstractWorkFlow {
     }
 
     public ParallelFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public ParallelFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public ParallelFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 
@@ -196,13 +232,17 @@ public class ParallelFlow extends AbstractWorkFlow {
 
     @Override
     public ParallelFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public ParallelFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 

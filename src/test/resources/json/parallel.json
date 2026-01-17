@@ -1,0 +1,14 @@
+{
+  "type": "parallel",
+  "autoShutdown": true,
+  "works": [{
+    "type": "work.PrintMessageWork",
+    "message": "a"
+  },{
+    "type": "work.PrintMessageWork",
+    "message": "b"
+  },{
+    "type": "work.PrintMessageWork",
+    "message": "c"
+  }]
+}

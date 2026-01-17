@@ -16,17 +16,29 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.report.*;
+import com.baomibing.work.exception.ExceptionEnum;
+import com.baomibing.work.report.MultipleWorkReport;
+import com.baomibing.work.report.SequentialWorkReport;
+import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
-import com.baomibing.work.work.*;
+import com.baomibing.work.work.EndWork;
+import com.baomibing.work.work.Work;
+import com.baomibing.work.work.WorkExecutePolicy;
+import com.baomibing.work.work.WorkStatus;
 import com.google.common.collect.Iterables;
+import org.apache.commons.lang3.EnumUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
+import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 
 /**
  * A sequential flow executes a set of work units in sequence.
@@ -38,6 +50,21 @@ public class SequentialFlow extends AbstractWorkFlow {
     private SequentialFlow(List<Work> works) {
         works.forEach(work -> workList.add(wrapNamedPointWork(work)));
         this.workList.add(new EndWork());
+    }
+
+    public static SequentialFlow deserialize(JSONObject flow) {
+        assertNotNull(flow, ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONArray workArray = flow.getJSONArray(Strings.WORKS);
+        assertNotEmpty(workArray, ExceptionEnum.WORKS_NOT_BE_NULL_OR_EMPTY);
+        SequentialFlow sequentialFlow =  new SequentialFlow(deserializeWorks(workArray));
+        sequentialFlow.named(flow.getString(Strings.NAME));
+        sequentialFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        sequentialFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+
+        //parse then work and lastly work
+        sequentialFlow.then(deserializeThenWork(flow));
+        sequentialFlow.lastly(deserializeLastWork(flow));
+        return sequentialFlow;
     }
 
     @Override
@@ -97,13 +124,17 @@ public class SequentialFlow extends AbstractWorkFlow {
 
     @Override
     public SequentialFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public SequentialFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 
@@ -133,18 +164,24 @@ public class SequentialFlow extends AbstractWorkFlow {
     }
 
     public SequentialFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public SequentialFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public SequentialFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 

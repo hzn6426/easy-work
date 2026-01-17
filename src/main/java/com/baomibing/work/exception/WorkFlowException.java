@@ -16,17 +16,28 @@
  */
 package com.baomibing.work.exception;
 
+import com.baomibing.work.util.Checker;
+import lombok.Getter;
+
+import java.text.MessageFormat;
+
 public class WorkFlowException extends RuntimeException {
 
-    public WorkFlowException(String message) {
-        super(message);
+    @Getter
+    protected int code;
+    @Getter
+    protected String codeMessage;
+
+    public WorkFlowException(ExceptionEnum exceptionEnum) {
+        super(MessageFormat.format(exceptionEnum.getExceptionMessage(), new Object[] {"","","",""}));
+        codeMessage = super.getMessage();
+        this.code = exceptionEnum.getExceptionCode();
     }
 
-    public WorkFlowException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public WorkFlowException(Throwable cause) {
-        super(cause);
+    public WorkFlowException(ExceptionEnum exceptionEnum, Object... arguments) {
+        super(MessageFormat.format(exceptionEnum.getExceptionMessage(),
+            Checker.BeEmpty(arguments) ? new Object[] { "", "", "", "" } : arguments));
+        codeMessage = super.getMessage();
+        this.code = exceptionEnum.getExceptionCode();
     }
 }

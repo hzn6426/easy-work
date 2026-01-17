@@ -1,0 +1,12 @@
+{
+  "type": "repeat",
+  "work": {
+     "type": "work.RepeatPrintWork",
+     "message": "c"
+   },
+  "until": {
+    "left": "$status",
+    "operator": "eq",
+    "right": "FAILED"
+  }
+}

@@ -41,7 +41,7 @@ public class TestLoopFlow {
         PrintMessageWork work3 = new PrintMessageWork("work3");
         PrintMessageWork work4 = new PrintMessageWork("work4");
 
-        WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withBreakPredicate(LoopIndexPredicate.indexPredicate(2));
+        WorkFlow flow = aNewLoopFlow(work1, work2, work3, work4).withInfiniteLoop(true).withBreakPredicate(LoopIndexPredicate.indexPredicate(8));
         aNewWorkFlowEngine().run(flow, new WorkContext());
     }
 
@@ -57,8 +57,8 @@ public class TestLoopFlow {
 
     public static void main(String[] args) {
 //        testAllLoop();
-//        testBreakLoop();
-        testContinueLoop();
+        testBreakLoop();
+//        testContinueLoop();
     }
 
 }

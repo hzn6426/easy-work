@@ -16,20 +16,28 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
+import com.baomibing.work.exception.ExceptionEnum;
+import com.baomibing.work.exception.WorkFlowException;
+import com.baomibing.work.json.JsonPredicate;
 import com.baomibing.work.predicate.TimesPredicate;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.RepeatWorkReport;
+import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkExecutePolicy;
-import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkStatus;
+import org.apache.commons.lang3.EnumUtils;
+
 import java.util.function.Function;
 
 import static com.baomibing.work.report.RepeatWorkReport.aNewRepeatWorkReport;
+import static com.baomibing.work.util.Parser.parse;
+import static com.baomibing.work.util.WorkUtil.assertNotNull;
 
 /**
  * A repeat flow executes a work repeatedly until its report satisfies a given predicate.
@@ -45,6 +53,33 @@ public class RepeatFlow extends AbstractWorkFlow {
     private RepeatFlow(WorkReportPredicate predicate, Work theWork) {
         this.workReportPredicate = predicate;
         workList.add(wrapNamedPointWork(theWork));
+    }
+
+    public static RepeatFlow deserialize(JSONObject flow) {
+        assertNotNull(flow, ExceptionEnum.FLOW_JSON_NOT_BE_NULL);
+        JSONObject workJson = flow.getJSONObject(Strings.WORK);
+        assertNotNull(workJson, ExceptionEnum.WORK_JSON_NOT_BE_NULL);
+        Work work = deserializeWork(workJson);
+        Integer time = flow.getInteger(Strings.TIMES);
+        JSONObject predicate = flow.getJSONObject(Strings.UNTIL);
+        if (Checker.BeNull(predicate) && Checker.BeNull(time)) {
+            throw new WorkFlowException(ExceptionEnum.PREDICATE_OR_TIMES_NOT_BE_NULL);
+        }
+        RepeatFlow repeatFlow = null;
+        if (Checker.BeNotNull(time)) {
+            repeatFlow = aNewRepeatFlow(work).times(time);
+        } else {
+            JsonPredicate jsonPredicate = predicate.toJavaObject(JsonPredicate.class);
+            repeatFlow = aNewRepeatFlow(work).until(parse(jsonPredicate));
+        }
+        repeatFlow.named(flow.getString(Strings.NAME));
+        repeatFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
+        repeatFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+
+        //parse then work and lastly work
+        repeatFlow.then(deserializeThenWork(flow));
+        repeatFlow.lastly(deserializeLastWork(flow));
+        return repeatFlow;
     }
 
     @Override
@@ -131,29 +166,39 @@ public class RepeatFlow extends AbstractWorkFlow {
 
     @Override
     public RepeatFlow then(Function<WorkReport, Work> fun) {
-        thenFuns.add(fun);
+        if (Checker.BeNotNull(fun)) {
+            thenFuns.add(fun);
+        }
         return this;
     }
 
     @Override
     public RepeatFlow then(Work work) {
-        thenFuns.add(report -> work);
+        if (Checker.BeNotNull(work)) {
+            thenFuns.add(report -> work);
+        }
         return this;
     }
 
     public RepeatFlow named(String name) {
-        this.name = name;
+        if (Checker.BeNotEmpty(name)) {
+            this.name = name;
+        }
         return this;
     }
 
     public RepeatFlow policy(WorkExecutePolicy workExecutePolicy) {
-        this.workExecutePolicy = workExecutePolicy;
+        if (Checker.BeNotNull(workExecutePolicy)) {
+            this.workExecutePolicy = workExecutePolicy;
+        }
         return this;
     }
 
     @Override
     public RepeatFlow context(WorkContext workContext) {
-        this.workContext = workContext;
+        if (Checker.BeNotNull(workContext)) {
+            this.workContext = workContext;
+        }
         return this;
     }
 

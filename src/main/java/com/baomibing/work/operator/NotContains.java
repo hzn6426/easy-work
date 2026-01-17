@@ -15,27 +15,16 @@
  *
  */
 
-package work;
+package com.baomibing.work.operator;
 
+public class NotContains extends Contains {
 
-import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.work.Work;
-
-public class PrintMessageWork implements Work {
-
-    private final String message;
-
-    public PrintMessageWork(String message) {
-        this.message = message;
+    public NotContains(Object left, Object right) {
+        super(left, right);
     }
 
     @Override
-    public String execute(WorkContext workContext) {
-        System.out.println(message);
-        return message;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(PrintMessageWork.class.getSimpleName());
+    public boolean test(Object o) {
+        return !super.test(o);
     }
 }
