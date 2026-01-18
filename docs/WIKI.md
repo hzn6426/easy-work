@@ -204,6 +204,12 @@ WorkFlow flow = aNewRepeatFlow(repeatWork).times(3);
 // 或者
 WorkFlow flow = aNewRepeatFlow(repeatWork).until(WorkReportPredicate.FAILED);
 ```
+`RepeatFlow` can achieve the effect of `retry`. Please refer to the following code for details:
+```java
+WorkFlow flow = aNewRepeatFlow(repeatWork)
+    .until(TimesPredicate.times(3,workReport -> Checker.BeNull(workReport.getError())));
+```
+
 
 ## SequentialFlow
 A `SequentialFlow` As described, the work units are executed in sequence, and each work unit waits for the completion of the previous one (COMPLETED or FAILED) before executing, returning only one result, which depending on the policy.
@@ -258,6 +264,10 @@ A `LoopFlow` is a sequential <b>infinite</b> loop execution of its work units,Un
 2. Set to skip a certain work unit through the method `withContinuePredicate`
 
 Easy Work has defined `LoopIndexPredicate` and `LoopLengthPredicate` to assist in index and loop length based interrupt conditions
+
+To ensure the safety of execution, the default is a `finite` loop, which automatically stops after completing all tasks (just like `SequentialFlow`).
+It can be set to an `infinite` loop using the ` withInfiniteLoop (true) ` method until the interrupt is satisfied before stopping.
+
 
 To create a `LoopFlow`，you can refer to the following example(`test/java/TestLoopFlow`):
 ```java
@@ -680,3 +690,70 @@ Match the process results, and if the `WorkReport` within it meets `all` the set
 
 ## The OrPredicate
 Match the process results, and if the `WorkReport` within it meets `any` set combination condition, it returns `true`; otherwise, it is returns `false`.
+
+# Deserialization
+EasyWork supports building workflows from `JSON` data, and each workflow can set values according to corresponding properties. 
+Certain `conditional` workflows (RepeatFlow, LoopFlow, ChooseFlow, ConditionalFlow) can generate corresponding WorkReportPredicate by defining built-in `operators` to meet the requirements of building condition based workflows.
+
+A simple example of building ConditionalFlow is (for more examples, please refer to test/Java/ReservializeTest):
+
+```json
+{
+    "type": "conditional",
+    "decide": {
+    "type": "work.PrintMessageWork",
+    "message": "I am execute success"
+    },
+    "predicate": {
+    "left" : "$status",
+    "operator": "eq",
+    "right": "COMPLETED"
+    },
+    "trueWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do success"
+    },
+    "falseWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do fail"
+    }
+}
+```
+
+## The Type
+Type (type attribute), divided into workflow type and Work type:
+1. Workflow types can be divided into `sequential`, `repeat`, `parallel`, `loop`, `conditional`, and `choose`
+2. Except for the two built-in types `AsyncWork` and  `NamedPointWork`, all other custom types of `Work` require a complete class name
+
+## Condition construction
+JSON conditional construction is divided into three fixed parts:
+1. The `left` part of the conditional construction is usually an attribute. If it is an attribute, it needs to be prefixed with `$`, which is also an identifier to distinguish between strings and attributes
+2. `operator` is a conditional construction operator used for constructing conditions
+3. `Right` is the value part, which can be an array, string, integer, etc
+
+Finally, the format of `left + condition + right` was formed, and EasyWork used this format to generate the corresponding `WorkReportPredicate`
+
+Note: In some operator cases, `left` or `right` may not be necessary, but `operator` is required.
+
+Tip: The corresponding cascading attributes can be accessed through cascading, 
+for example, `$result.$user.$name` represents the "name" attribute of the "user" object in the "result" attribute of the "WorkReport" result. 
+The root of cascading attributes always starts from `WorkReport`.
+
+## The operator
+EasyWork provides basic operators to assist in conditional construction. The following are the corresponding operators when building JSON:
+
+1. The `eq` operator is used to determine whether `left` and `right` are equal
+2. The `ne` operator is used to determine if `left` and `right` are not equal
+3. The `gt` operator, used to determine if `left` is greater than `right`
+4. The `ge` operator is used to determine if `left` is greater than or equal to `right`
+5. The `lt` operator is used to determine if `left` is less than `right`
+6. The `le` operator is used to determine if `left` is less than or equal to `right`
+7. The `contains` operator is used to determine the value of `right` contained in the `left`
+8. The `ncontains` operator is used to determine the value of `left` that does not contain the value of `right`
+9. The `empty` operator is used to determine whether the `left` value is empty or null, and there is no need for the `right` operator in this case
+10. The `nempty` operator is used to determine if the `left` value is not empty or null, and there is no need for the `right` operator in this case
+11. The `and` operator used to determine if all the conditions in `right` are met, and there is no need to use `left` in this case
+12. The `or` operator is used to determine if any of the conditions in `right` are satisfied, and there is no need to use `left` in this case
+
+When using the `and` or `or` operator, the structure in its right is a `conditional construction` array, which contains at least one record.
+

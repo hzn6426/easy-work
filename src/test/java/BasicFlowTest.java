@@ -41,7 +41,7 @@ public class BasicFlowTest {
                 aNewConditionalFlow(
                     aNewParallelFlow(work2,work3)
                 ).when(WorkReportPredicate.COMPLETED, work4, work5)
-        ).named("sequential");
+        );
         aNewWorkFlowEngine().run(flow, workContext);
 
 

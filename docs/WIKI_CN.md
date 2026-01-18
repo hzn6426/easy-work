@@ -186,6 +186,13 @@ WorkFlow flow = aNewRepeatFlow(repeatWork).times(3);
 // 或者
 WorkFlow flow = aNewRepeatFlow(repeatWork).until(WorkReportPredicate.FAILED);
 ```
+`RepeatFlow` 可以达到 `retry`重试的效果，具体参考如下代码：
+```java
+WorkFlow flow = aNewRepeatFlow(repeatWork)
+    .until(TimesPredicate.times(3,workReport -> Checker.BeNull(workReport.getError())));
+```
+The `times` method in `TimesPredicate` is overloaded, causing the workflow to interrupt when conditions are met, otherwise it continues to execute until the corresponding number of times is reached.
+
 
 ## SequentialFlow
 `SequentialFlow` 就像描述的那样，按照顺序执行其中的工作单元，每一个工作单元都会等待前一个工作单元执行完成后(成功或失败)再执行，只返回其中的一个结果，具体由设置的策略决定。
@@ -235,7 +242,8 @@ WorkFlow flow = aNewChooseFlow(work)
 1. 通过方法`withBreakPredicate`来设置中断条件，满足条件后中断循环，返回最后一次执行的结果
 2. 通过方法`withContinuePredicate`来设置跳过某个工作单元
 
-系统定义了`LoopIndexPredicate` 和 `LoopLengthPredicate`辅助进行基于索引和循环长度的中断条件
+系统定义了`LoopIndexPredicate` 和 `LoopLengthPredicate`辅助进行基于索引和循环长度的中断条件。
+为保证执行的安全性，默认为<b>有限</b>循环，即执行完所有任务后自动停止(就像 SequentialFlow)，可以通过`withInfiniteLoop(true)`方法设置为`无限`循环，直到满足中断后停止
 
 要构建一个`LoopFlow`，可以参考以下的例子(`test/java/TestLoopFlow`):
 ```java
@@ -626,3 +634,62 @@ Easy Work 中的 `Predicate` 都是 `WorkReportPredicate` 接口类型的实现,
 
 ## OrPredicate 类
 对流程结果进行匹配，其内的`WorkReport`满足任何设置的组合条件时，则为`true`，否则为 `false`
+
+# 反序列化
+EasyWork 支持从 `JSON` 数据构建工作流，每个工作流可以按照对应的属性设置值，某些`条件`工作流(RepeatFlow,LoopFlow,ChooseFlow,ConditionalFlow)，可以通过定义内置的`操作符` 生成对应的 WorkReportPredicate，以满足构建基于条件的工作流。
+一个简单的构建 ConditionalFlow 的例子为(更多例子，请参考 test/java/DeserializeTest)：
+```json
+{
+    "type": "conditional",
+    "decide": {
+    "type": "work.PrintMessageWork",
+    "message": "I am execute success"
+    },
+    "predicate": {
+    "left" : "$status",
+    "operator": "eq",
+    "right": "COMPLETED"
+    },
+    "trueWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do success"
+    },
+    "falseWork": {
+    "type": "work.PrintMessageWork",
+    "message": "do fail"
+    }
+}
+```
+
+## 类型
+类型（type属性)，分为工作流类型 和 Work 类型，
+1. 工作流类型可分为 sequential、repeat、parallel、loop、conditional、choose
+2.  Work 类型除 `AsyncWork`、`NamedPointWork` 两种内置类型外，其他自定义类型都需要完整的类名
+
+## 条件构建
+JSON 条件构建分为三个固定的部分：
+1. left 为条件构建的左侧部分，一般为属性，如果是属性需要添加前缀 `$`，也是区分字符串和属性的标识
+2. operator 为条件构建操作符，用于进行条件构建
+3. right 为值部分，可以是数组、字符串、整型等
+
+最终形成了 `left + 条件 + right` 的格式，EasyWork 通过此种格式来生成对应的 `WorkReportPredicate`.
+注意：在某些操作符情况下 left 或 right 可能不需要，但Operator 是必需的。
+
+提示：可以通过级联的方式来访问对应的级联属性，例如"$result.$user.$name"表示 `WorkReport` 结果中 `result` 属性中 `user` 对象的 `name` 属性，级联属性的根总是从 WorkReport开始
+
+## 操作符
+EasyWork提供了基础的操作符以辅助进行条件构建，以下为构建 JSON 时对应的操作符：
+1. eq 操作符，用于判断left 和 right 是否相等
+2. ne 操作符，用于判断 left 和 right 不相等
+3. gt 操作符，用于判断 left 大于 right
+4. ge 操作符，用于判断 left 大于等于 right
+5. lt 操作符，用于判断 left 小于 right
+6. le 操作符，用于判断 left 小于等于 right
+7. contains 操作符，用于判断 left 中包含 right 的值
+8. ncontains操作符，用于判断 left 中不包含 right 的值
+9. empty 操作符，用于判断 left 值为空或为 null，此时不需要 right
+10. nempty操作符，用于判断 left 值不为空或为 null，此时不需要 right
+11. and 操作符，判断 right 中的条件构建全部满足，此时不需要 left
+12. or 操作符，判断 right 中的条件构建任意一个满足，此时不需要 left
+
+and 或 or 操作符时其 right 中的结构为 `条件构建` 数组，至少包含一条记录

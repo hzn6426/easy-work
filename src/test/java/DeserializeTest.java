@@ -88,6 +88,12 @@ public class DeserializeTest {
         sequentialFlow.execute(new WorkContext());
     }
 
+    public static void testExampleFlow() {
+        String json = ResourceReader.readJSON("json/example.json");
+        SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
+        sequentialFlow.execute(new WorkContext());
+    }
+
     public static void main(String[] args) {
 //        deserializeSequentialFlowTest();
 //        deserializeRepeatFlowTest();
@@ -99,6 +105,7 @@ public class DeserializeTest {
 //        testChooseFlow();
 //        testChooseFlow2();
 //        testChooseFlowAnd();
-        testComplexFlow();
+//        testComplexFlow();
+        testExampleFlow();
     }
 }

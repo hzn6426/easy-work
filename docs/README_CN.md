@@ -122,6 +122,70 @@ System.out.println("execute to the break point `C_BREAK_POINT`");
 //从断点处继续执行，直到完成
 flow.execute();
 ```
+## JSON构建工作流
+从 V1.0.8开始工作流支持基于 `JSON` 的构建，你可以通过 `JSON` 的方式构建任意复杂的工作流。
+基于以上图示中的例子，通过 JSON 构建工作流的片段为(example.json)：
+```json
+{
+  "type": "sequential",
+  "works": [{
+    "type": "repeat",
+    "times": 3,
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "a"
+    }
+  },{
+    "type": "sequential",
+    "works": [{
+      "type": "work.PrintMessageWork",
+      "message": "b"
+    },{
+      "type": "work.PrintMessageWork",
+      "message": "c"
+    },{
+      "type": "work.PrintMessageWork",
+      "message": "d"
+    }]
+  },{
+      "type": "conditional",
+      "decide": {
+        "type": "parallel",
+        "autoShutdown": true,
+        "works": [{
+          "type": "work.PrintMessageWork",
+          "message": "e"
+        },{
+          "type": "work.PrintMessageWork",
+          "message": "f"
+        }]
+      },
+      "predicate": {
+        "left" : "$status",
+        "operator": "eq",
+        "right": "COMPLETED"
+      },
+      "trueWork": {
+        "type": "work.PrintMessageWork",
+        "message": "g"
+      },
+      "falseWork": {
+        "type": "work.PrintMessageWork",
+        "message": "h"
+      }
+  }],
+  "then": {
+    "type": "work.PrintMessageWork",
+    "message": "z"
+  }
+}
+```
+你可以通过以下代码反序列化工作流，并进行执行（更多例子请参考test/java/DeserializeTest)
+```java
+String json = ResourceReader.readJSON("json/example.json");
+SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
+sequentialFlow.execute(new WorkContext());
+```
 
 这不是一个非常有用的工作流，只是为了让你了解如何使用Easy Work而编写工作流。
 
