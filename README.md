@@ -123,7 +123,71 @@ System.out.println("execute to the break point `C_BREAK_POINT`");
 //recovery execute from the `C_BREAK_POINT` to the end.
 flow.execute();
 ```
+## Build workflow from json
+Now (from version V1.0.8) EasyWork support JSON-based construction, allowing you to build workflows of arbitrary complexity using JSON.
 
+Based on the example shown in the diagram above, the fragment for constructing a workflow using JSON is (example. json):
+```json
+{
+  "type": "sequential",
+  "works": [{
+    "type": "repeat",
+    "times": 3,
+    "work": {
+      "type": "work.PrintMessageWork",
+      "message": "a"
+    }
+  },{
+    "type": "sequential",
+    "works": [{
+      "type": "work.PrintMessageWork",
+      "message": "b"
+    },{
+      "type": "work.PrintMessageWork",
+      "message": "c"
+    },{
+      "type": "work.PrintMessageWork",
+      "message": "d"
+    }]
+  },{
+      "type": "conditional",
+      "decide": {
+        "type": "parallel",
+        "autoShutdown": true,
+        "works": [{
+          "type": "work.PrintMessageWork",
+          "message": "e"
+        },{
+          "type": "work.PrintMessageWork",
+          "message": "f"
+        }]
+      },
+      "predicate": {
+        "left" : "$status",
+        "operator": "eq",
+        "right": "COMPLETED"
+      },
+      "trueWork": {
+        "type": "work.PrintMessageWork",
+        "message": "g"
+      },
+      "falseWork": {
+        "type": "work.PrintMessageWork",
+        "message": "h"
+      }
+  }],
+  "then": {
+    "type": "work.PrintMessageWork",
+    "message": "z"
+  }
+}
+```
+You can deserialize the workflow using the following code and execute it (for more examples, please refer to test/Java/ReservializeTest)
+```java
+String json = ResourceReader.readJSON("json/example.json");
+SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
+sequentialFlow.execute(new WorkContext());
+```
 This is not a very useful workflow, but just to give you an idea about how to write workflows with Easy Work.
 
 You can view more test cases in `test/java`.
