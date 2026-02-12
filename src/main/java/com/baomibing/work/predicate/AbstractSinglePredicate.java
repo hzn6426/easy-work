@@ -19,19 +19,19 @@ package com.baomibing.work.predicate;
 import com.baomibing.work.report.DefaultWorkReport;
 import com.baomibing.work.report.MultipleWorkReport;
 import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.util.PredicationUtil;
 import com.google.common.collect.Lists;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Abstract predicate for all and or any none predicate
  *
  * @author zening (316279829@qq.com)
  */
-public abstract class AbstractPredicate implements WorkReportPredicate {
+public abstract class AbstractSinglePredicate implements WorkReportJsonPredicate {
 
-    protected Predicate<WorkReport> predicate;
+    protected WorkReportPredicate predicate;
 
     List<WorkReport> wrap(WorkReport workReport) {
         if (workReport instanceof DefaultWorkReport) {
@@ -40,5 +40,9 @@ public abstract class AbstractPredicate implements WorkReportPredicate {
             return ((MultipleWorkReport) workReport).getReports();
         }
         return Lists.newArrayList(workReport);
+    }
+
+    public WorkReportJsonPredicate assertJsonPredicate() {
+        return PredicationUtil.toJsonPredicate(predicate);
     }
 }

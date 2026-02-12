@@ -30,11 +30,11 @@ import com.baomibing.work.work.Work;
 import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkStatus;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.EnumUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import static com.baomibing.work.report.SequentialWorkReport.aNewSequentialWorkReport;
 import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
@@ -60,11 +60,37 @@ public class SequentialFlow extends AbstractWorkFlow {
         sequentialFlow.named(flow.getString(Strings.NAME));
         sequentialFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
         sequentialFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
-
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        sequentialFlow.trace(Boolean.TRUE.equals(trace));
         //parse then work and lastly work
-        sequentialFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                sequentialFlow.then(thenWork);
+            }
+        }
         sequentialFlow.lastly(deserializeLastWork(flow));
         return sequentialFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json = serializeBase();
+        json.put(Strings.TYPE, Strings.SEQUENTIAL);
+        List<Work> works = Lists.newArrayList();
+        for (Work work : this.workList) {
+            if (!(work instanceof EndWork)) {
+                works.add(work);
+            }
+        }
+        json.put(Strings.WORKS, serializeWorks(works));
+
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
     }
 
     @Override
@@ -122,18 +148,11 @@ public class SequentialFlow extends AbstractWorkFlow {
         locate2CurrentWorkInternal();
     }
 
-    @Override
-    public SequentialFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
 
     @Override
     public SequentialFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

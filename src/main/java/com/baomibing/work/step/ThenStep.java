@@ -19,9 +19,6 @@ package com.baomibing.work.step;
 
 import com.baomibing.work.flow.WorkFlow;
 import com.baomibing.work.work.Work;
-import com.baomibing.work.report.WorkReport;
-
-import java.util.function.Function;
 
 /**
  * A follow-up execution interface that always executes the follow-up interface, unless the {@link com.baomibing.work.work.WorkExecutePolicy} is FAST_EXCEPTION
@@ -30,7 +27,7 @@ import java.util.function.Function;
  */
 public interface ThenStep extends WorkFlow {
 
-    WorkFlow then(Function<WorkReport, Work> fun);
+//    WorkFlow then(Function<WorkReport, Work> fun);
 
     WorkFlow then(Work work);
 

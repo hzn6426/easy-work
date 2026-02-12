@@ -18,6 +18,8 @@
 package com.baomibing.work.operator;
 
 import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.report.WorkReport;
 
 import java.util.List;
@@ -28,6 +30,11 @@ public class And extends AbstractOperatorPredicate{
 
     public And(Object right) {
         this.right = right;
+    }
+
+    @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.and.name(),  right);
     }
 
     @Override

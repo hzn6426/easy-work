@@ -16,7 +16,7 @@
  */
 package com.baomibing.work.util;
 
-public class Strings {
+public abstract class Strings {
     private Strings() {}
     public static final String EMPTY = "";
     public static final String TYPE = "type";
@@ -50,4 +50,5 @@ public class Strings {
     public static final String SHORT_LOGIC = "shortLogic";
     public static final String THEN =  "then";
     public static final String LASTLY =  "lastly";
+    public static final String TRACE = "trace";
 }

@@ -33,7 +33,7 @@ import com.baomibing.work.work.WorkExecutePolicy;
 import com.baomibing.work.work.WorkStatus;
 import org.apache.commons.lang3.EnumUtils;
 
-import java.util.function.Function;
+import java.util.List;
 
 import static com.baomibing.work.report.RepeatWorkReport.aNewRepeatWorkReport;
 import static com.baomibing.work.util.Parser.parse;
@@ -75,11 +75,37 @@ public class RepeatFlow extends AbstractWorkFlow {
         repeatFlow.named(flow.getString(Strings.NAME));
         repeatFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
         repeatFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        repeatFlow.trace(Boolean.TRUE.equals(trace));
 
         //parse then work and lastly work
-        repeatFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                repeatFlow.then(thenWork);
+            }
+        }
         repeatFlow.lastly(deserializeLastWork(flow));
         return repeatFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json = serializeBase();
+        json.put(Strings.TYPE, Strings.REPEAT);
+        if (workReportPredicate instanceof TimesPredicate) {
+            TimesPredicate timesPredicate = (TimesPredicate) workReportPredicate;
+            json.put(Strings.TIMES, timesPredicate.getTimes());
+        } else {
+            json.put(Strings.UNTIL, toJsonPredicate(workReportPredicate).toJsonPredicate());
+        }
+        json.put(Strings.WORK, serializeWork(workList.get(0)));
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
     }
 
     @Override
@@ -95,7 +121,7 @@ public class RepeatFlow extends AbstractWorkFlow {
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
         if (workReport.getStatus() != WorkStatus.STOPPED) {
-            if (Checker.BeNotEmpty(thenFuns) ) {
+            if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     bePoll = true;
                 }
@@ -164,18 +190,11 @@ public class RepeatFlow extends AbstractWorkFlow {
         locate2CurrentWorkInternal();
     }
 
-    @Override
-    public RepeatFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
 
     @Override
     public RepeatFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

@@ -619,21 +619,65 @@ SequentialFlow flow = aNewSequentialFlow(a, aNamePointWork(b).addWorkExecuteList
 # Predicate 条件
 Easy Work 中的 `Predicate` 都是 `WorkReportPredicate` 接口类型的实现, 主要用于在 `ConditionalFlow` 和 `ChooseFlow` 中进行条件决策。
 从 1.0.7版本开始添加了多种类型，辅助进行条件决策，更多例子请参考（test/java/RoutePredicateTest)。
-
+注意：以下条件断言都继承 `WorkReportJsonPredicate`，该接口提供了序列化为 JSON 的方法。
 ## AllPredicate 类
 对流程执行的结果（`MultipleWorkReport`类型）进行匹配，其内所有的 `WorkReport` 都满足条件，则为 `true`，否则为 `false`
 
 ## AnyPredicate 类
-对流程结果进行匹配，其内所有的`WorkReport`有一个满足条件，则为`true`，否则为 `false`
+对流程执行的结果（`MultipleWorkReport`类型）进行匹配，其内所有的`WorkReport`有一个满足条件，则为`true`，否则为 `false`
 
 ## NonePredicate 类
-对流程结果进行匹配，其内所有的`WorkReport`没有一个满足条件，则为`true`，否则为 `false`
+对流程执行的结果（`MultipleWorkReport`类型）进行匹配，其内所有的`WorkReport`没有一个满足条件，则为`true`，否则为 `false`
 
 ## AndPredicate 类
 对流程结果进行匹配，其内的`WorkReport`满足所有设置的组合条件时，则为`true`，否则为 `false`
 
 ## OrPredicate 类
 对流程结果进行匹配，其内的`WorkReport`满足任何设置的组合条件时，则为`true`，否则为 `false`
+
+## ComparePredicate
+EasyWork 内置了`比较`断言可以更方便地进行`条件`断言构建，该断言分为以下几个部分：
+1. express 为表达式，在进行对象嵌套时特别有用，比如需要判断 result 中的某个属性时，可通过该表达式将引用(target 属性)指向到 result 上，需要添加前缀 `$`，例如`$result`
+2. left 为条件构建的左侧部分，通过方法引用符的方式来确定对应的属性，默认的对象指向为 WorkReport，通过 express 来更改指向。
+例如express为`$result`，left 为 `User::getName`, 表明 result 存储的是 `User` 对象，比较的左侧将获取 `User` 对象的`name`属性值
+3. right 为值部分，可以是数组、字符串、整型等
+4. target 为left 取值时的指向对象，默认为WorkReport
+
+提示：可以约略 left，直接通过 express 来指定对应的左侧条件值，例如`$result.$name` 表明获取 WorkReport 中的 result 属性中的 name 属性
+
+## EqPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`相等`条件时，则为`true`，否则为 `false`
+例如通过以下例子来构建一个 `EqPredicate`
+```java
+//predicate the value of workName equals to a
+aNewEqPredicate(WorkReport::getWorkName, "a")
+```
+## NEqPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`不相等`条件时，则为`true`，否则为 `false`
+
+## GreaterEqualPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`大于或等于`条件时，则为`true`，否则为 `false`
+
+## GreaterPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`大于`条件时，则为`true`，否则为 `false`
+
+## LessEqualPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`小于或等于`条件时，则为`true`，否则为 `false`
+
+## LessPredicate 类
+对流程结果进行匹配，其内的`WorkReport`满足`小于`条件时，则为`true`，否则为 `false`
+
+## ContainsPredicate类
+对流程结果进行匹配，其内的`WorkReport`满足`包含`条件时，则为`true`，否则为 `false`
+
+## NotContainsPredicate类
+对流程结果进行匹配，其内的`WorkReport`满足` 不包含`条件时，则为`true`，否则为 `false`
+
+## EmptyPredicate类
+对流程结果进行匹配，其内的`WorkReport`满足`  为空或者为 Null`条件时，则为`true`，否则为 `false`
+
+## NotEmptyPredicate类
+对流程结果进行匹配，其内的`WorkReport`满足`   不为空并且不为Null`条件时，则为`true`，否则为 `false`
 
 # 反序列化
 EasyWork 支持从 `JSON` 数据构建工作流，每个工作流可以按照对应的属性设置值，某些`条件`工作流(RepeatFlow,LoopFlow,ChooseFlow,ConditionalFlow)，可以通过定义内置的`操作符` 生成对应的 WorkReportPredicate，以满足构建基于条件的工作流。
@@ -691,5 +735,11 @@ EasyWork提供了基础的操作符以辅助进行条件构建，以下为构建
 10. nempty操作符，用于判断 left 值不为空或为 null，此时不需要 right
 11. and 操作符，判断 right 中的条件构建全部满足，此时不需要 left
 12. or 操作符，判断 right 中的条件构建任意一个满足，此时不需要 left
+13. none 操作符，判断 right 中的条件全部不满足，此时不需要 left
 
-and 或 or 操作符时其 right 中的结构为 `条件构建` 数组，至少包含一条记录
+and 或 or 或 none 操作符时其 right 中的结构为 `条件构建` 数组，至少包含一条记录
+
+# 序列化
+EasyWork 通过 `serialize()`方法将工作流转化成 JSON 数据，对于 某些`条件`工作流(RepeatFlow,LoopFlow,ChooseFlow,ConditionalFlow)，必须通过实现 `WorkReportJsonPredicate`的方式来进行序列化。
+EasyWork 提供了常用的 `WorkReportJsonPredicate`(具体参考`Predicate 条件`章节) 来协助构建`条件`工作流。
+

@@ -20,9 +20,12 @@ package work;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.work.Work;
+import lombok.Getter;
+import lombok.Setter;
 
 public class PrintMessageWork implements Work {
-
+    @Setter
+    @Getter
     private final String message;
 
     public PrintMessageWork(String message) {

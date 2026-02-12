@@ -25,14 +25,17 @@ import com.baomibing.work.work.WorkStatus;
  *
  * @author zening (316279829@qq.com)
  */
-@FunctionalInterface
 public interface WorkReportPredicate {
+
 
     boolean apply(WorkReport workReport);
 
-    WorkReportPredicate ALWAYS_TRUE = workReport -> true;
-    WorkReportPredicate ALWAYS_FALSE = workReport -> false;
+
+//    WorkReportPredicate ALWAYS_TRUE = workReport -> true;
+//    WorkReportPredicate ALWAYS_FALSE = workReport -> false;
     WorkReportPredicate COMPLETED = workReport -> workReport.getStatus().equals(WorkStatus.COMPLETED);
+
     WorkReportPredicate FAILED = workReport -> workReport.getStatus().equals(WorkStatus.FAILED);
+
 
 }

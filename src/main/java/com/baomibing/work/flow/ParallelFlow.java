@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.baomibing.work.report.ParallelWorkReport.aNewParallelWorkReport;
@@ -99,11 +98,49 @@ public class ParallelFlow extends AbstractWorkFlow {
         if (Checker.BeNotNull(beAutoShutDown)) {
             parallelFlow.withAutoShutDown(beAutoShutDown);
         }
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        parallelFlow.trace(Boolean.TRUE.equals(trace));
 
         //parse then work and lastly work
-        parallelFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                parallelFlow.then(thenWork);
+            }
+        }
         parallelFlow.lastly(deserializeLastWork(flow));
         return parallelFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json = serializeBase();
+        json.put(Strings.TYPE, Strings.PARALLEL);
+        if (autoShutdown) {
+            json.put(Strings.AUTO_SHUTDOWN, Boolean.TRUE);
+        }
+        if (timeoutInSeconds > 0) {
+            json.put(Strings.TIMEOUT, timeoutInSeconds);
+        }
+        List<Work> works = Lists.newArrayList();
+        for (Work work : this.workList) {
+            if (work instanceof NamedParallelWork) {
+                NamedParallelWork namedParallelWork = (NamedParallelWork) work;
+                List<Work> supplierWorks = namedParallelWork.getSupplierWorks();
+                for (Work supplierWork : supplierWorks) {
+                    works.add(supplierWork);
+                }
+            }
+        }
+        json.put(Strings.WORKS, serializeWorks(works));
+
+
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
     }
 
     @Override
@@ -230,18 +267,11 @@ public class ParallelFlow extends AbstractWorkFlow {
         return this;
     }
 
-    @Override
-    public ParallelFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
 
     @Override
     public ParallelFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

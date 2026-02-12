@@ -17,6 +17,8 @@
 package com.baomibing.work.predicate;
 
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.report.LoopIndexWorkReport;
 import com.baomibing.work.report.WorkReport;
@@ -26,7 +28,7 @@ import com.baomibing.work.report.WorkReport;
  *
  * @author zening (316279829@qq.com)
  */
-public class LoopIndexPredicate implements WorkReportPredicate {
+public class LoopIndexPredicate implements WorkReportJsonPredicate {
 
     private int index = 0;
 
@@ -45,5 +47,10 @@ public class LoopIndexPredicate implements WorkReportPredicate {
             return loopWorkReport.getIndex() == index;
         }
         return false;
+    }
+
+    @Override
+    public JsonPredicate toJsonPredicate() {
+        return new JsonPredicate("$index", OperatorEnum.eq.name(),  index);
     }
 }

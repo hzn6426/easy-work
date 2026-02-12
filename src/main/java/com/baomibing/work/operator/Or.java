@@ -18,6 +18,8 @@
 package com.baomibing.work.operator;
 
 import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.report.WorkReport;
 
 import java.util.List;
@@ -31,9 +33,14 @@ public class Or extends AbstractOperatorPredicate{
     }
 
     @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.or.name(),  right);
+    }
+
+    @Override
     public boolean test(Object o) {
         report = o;
         List<JsonPredicate> predicates = right2Predicates();
-        return predicates.stream().allMatch(p -> parse(p).apply((WorkReport) report));
+        return predicates.stream().anyMatch(p -> parse(p).apply((WorkReport) report));
     }
 }

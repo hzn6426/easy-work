@@ -17,6 +17,8 @@
 package com.baomibing.work.predicate;
 
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.report.LoopIndexWorkReport;
 import com.baomibing.work.report.WorkReport;
@@ -25,7 +27,7 @@ import com.baomibing.work.report.WorkReport;
  *
  * @author zening (316279829@qq.com)
  */
-public class LoopLengthPredicate implements WorkReportPredicate{
+public class LoopLengthPredicate implements WorkReportJsonPredicate{
 
     private int length = 0;
 
@@ -43,5 +45,10 @@ public class LoopLengthPredicate implements WorkReportPredicate{
             return loopWorkReport.getLength() == length;
         }
         return false;
+    }
+
+    @Override
+    public JsonPredicate toJsonPredicate() {
+        return new JsonPredicate("$length", OperatorEnum.eq.name(),  length);
     }
 }

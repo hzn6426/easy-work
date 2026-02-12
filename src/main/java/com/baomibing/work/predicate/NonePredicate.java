@@ -17,29 +17,33 @@
 
 package com.baomibing.work.predicate;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
 import com.baomibing.work.report.WorkReport;
 
-import java.util.function.Predicate;
 /**
  * None predicate for work report
  *
  * @author zening (316279829@qq.com)
  */
-public class NonePredicate extends AbstractPredicate {
+public class NonePredicate extends AbstractSinglePredicate {
 
-    private final Predicate<WorkReport> predicate;
-
-    private NonePredicate(Predicate<WorkReport> predicate) {
+    private NonePredicate(WorkReportPredicate predicate) {
         this.predicate = predicate;
     }
 
-    public static NonePredicate nonePredicate(Predicate<WorkReport> predicate) {
+    public static NonePredicate nonePredicate(WorkReportPredicate predicate) {
         return new NonePredicate(predicate);
     }
 
     @Override
     public boolean apply(WorkReport workReport) {
-        return wrap(workReport).stream().noneMatch(predicate);
+        return wrap(workReport).stream().noneMatch(report -> predicate.apply(report));
     }
 
+    @Override
+    public JsonPredicate toJsonPredicate() {
+        WorkReportJsonPredicate workReportJsonPredicate = assertJsonPredicate();
+        return new JsonPredicate(null, OperatorEnum.none.name(), workReportJsonPredicate.toJsonPredicate());
+    }
 }

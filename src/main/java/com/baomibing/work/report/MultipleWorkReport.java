@@ -17,7 +17,6 @@
 package com.baomibing.work.report;
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.work.WorkStatus;
 import lombok.Getter;

@@ -23,8 +23,8 @@ import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.work.WorkExecutePolicy;
 import work.ExceptionPrintMessageWork;
 import work.PrintMessageWork;
-
-import java.util.function.Predicate;
+import work.User;
+import work.UserPrintWork;
 
 import static com.baomibing.work.enignee.WorkFlowEngineImpl.aNewWorkFlowEngine;
 import static com.baomibing.work.flow.ConditionalFlow.aNewConditionalFlow;
@@ -32,6 +32,8 @@ import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
 import static com.baomibing.work.predicate.AllPredicate.allPredicate;
 import static com.baomibing.work.predicate.AndPredicate.andPredicate;
 import static com.baomibing.work.predicate.AnyPredicate.anyPredicate;
+import static com.baomibing.work.predicate.EqPredicate.aNewEqPredicate;
+import static com.baomibing.work.predicate.GreaterEqualPredicate.aNewGreaterEqualPredicate;
 import static com.baomibing.work.predicate.NonePredicate.nonePredicate;
 import static com.baomibing.work.predicate.OrPredicate.orPredicate;
 import static com.baomibing.work.work.NamedPointWork.aNamePointWork;
@@ -51,7 +53,7 @@ public class RoutePredicateTest {
         PrintMessageWork m = new PrintMessageWork("m");
 
         WorkFlow flow = aNewConditionalFlow(aNewSequentialFlow(a,b,c)).when(
-                        allPredicate(report -> WorkReportPredicate.COMPLETED.apply(report)),
+                        allPredicate(WorkReportPredicate.COMPLETED),
                         aNewSequentialFlow(d,e),
                         aNewSequentialFlow(l,m));
         aNewWorkFlowEngine().run(flow, new WorkContext());
@@ -73,7 +75,7 @@ public class RoutePredicateTest {
         PrintMessageWork m = new PrintMessageWork("m");
 
         WorkFlow flow = aNewConditionalFlow(aNewSequentialFlow(a,exceptionPrintMessageWork,b,c)).when(
-            anyPredicate(report -> WorkReportPredicate.COMPLETED.apply(report)),
+            anyPredicate(WorkReportPredicate.COMPLETED),
             aNewSequentialFlow(d,e),
             aNewSequentialFlow(l,m)).policy(WorkExecutePolicy.FAST_ALL);
         aNewWorkFlowEngine().run(flow, new WorkContext());
@@ -95,7 +97,7 @@ public class RoutePredicateTest {
         PrintMessageWork m = new PrintMessageWork("m");
 
         WorkFlow flow = aNewConditionalFlow(aNewSequentialFlow(a,exceptionPrintMessageWork,b,c).policy(WorkExecutePolicy.FAST_ALL)).when(
-            nonePredicate(report -> WorkReportPredicate.FAILED.apply(report)),
+            nonePredicate(WorkReportPredicate.FAILED),
             aNewSequentialFlow(d,e),
             aNewSequentialFlow(l,m)).policy(WorkExecutePolicy.FAST_ALL);
         aNewWorkFlowEngine().run(flow, new WorkContext());
@@ -116,12 +118,12 @@ public class RoutePredicateTest {
         PrintMessageWork l = new PrintMessageWork("l");
         PrintMessageWork m = new PrintMessageWork("m");
 
-        Predicate<WorkReport> anyCompletePredicate = workReport -> {
+        WorkReportPredicate anyCompletePredicate = workReport -> {
             SequentialWorkReport sequentialWorkReport = (SequentialWorkReport) workReport;
-            return sequentialWorkReport.anyMatch(report -> WorkReportPredicate.COMPLETED.apply(report));
+            return sequentialWorkReport.anyMatch(WorkReportPredicate.COMPLETED::apply);
         };
 
-        Predicate<WorkReport> anyNameAPredicate = workReport -> {
+        WorkReportPredicate anyNameAPredicate = workReport -> {
             SequentialWorkReport sequentialWorkReport = (SequentialWorkReport) workReport;
             return sequentialWorkReport.anyMatch(report -> report.getWorkName().equals("a"));
         };
@@ -148,15 +150,9 @@ public class RoutePredicateTest {
         PrintMessageWork l = new PrintMessageWork("l");
         PrintMessageWork m = new PrintMessageWork("m");
 
-        Predicate<WorkReport> anyCompletePredicate = workReport -> {
-            SequentialWorkReport sequentialWorkReport = (SequentialWorkReport) workReport;
-            return sequentialWorkReport.anyMatch(report -> WorkReportPredicate.FAILED.apply(report));
-        };
+        WorkReportPredicate anyCompletePredicate = anyPredicate(WorkReportPredicate.COMPLETED);
 
-        Predicate<WorkReport> anyNameBPredicate = workReport -> {
-            SequentialWorkReport sequentialWorkReport = (SequentialWorkReport) workReport;
-            return sequentialWorkReport.anyMatch(report -> report.getWorkName().equals("b"));
-        };
+        WorkReportPredicate anyNameBPredicate = anyPredicate(aNewEqPredicate(WorkReport::getWorkName, a));
 
         WorkFlow flow = aNewConditionalFlow(aNewSequentialFlow(aNamePointWork(a).named("a"),exceptionPrintMessageWork,b,c).policy(WorkExecutePolicy.FAST_ALL)).when(
             orPredicate(anyCompletePredicate, anyNameBPredicate),
@@ -165,11 +161,50 @@ public class RoutePredicateTest {
         aNewWorkFlowEngine().run(flow, new WorkContext());
     }
 
+    private static void testCompareEqualPredicate() {
+        PrintMessageWork ageGreaterThanTen = new PrintMessageWork("age greater than 10");
+        PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+        PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+
+        UserPrintWork uworker1 = new UserPrintWork(new User().setAge(10).setName("john"));
+        UserPrintWork uworker2 =  new UserPrintWork(new User().setAge(20).setName("geo"));
+        UserPrintWork uworker3 =  new UserPrintWork(new User().setAge(9).setName("alex"));
+        aNewConditionalFlow(uworker1).when(aNewEqPredicate("$result", User::getAge, 10), ageEqualTen).execute(new WorkContext());
+    }
+
+    private static void testCompareEqualPredicate2() {
+        PrintMessageWork ageGreaterThanTen = new PrintMessageWork("age greater than 10");
+        PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+        PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+
+        UserPrintWork uworker1 = new UserPrintWork(new User().setAge(10).setName("john"));
+        UserPrintWork uworker2 =  new UserPrintWork(new User().setAge(20).setName("geo"));
+        UserPrintWork uworker3 =  new UserPrintWork(new User().setAge(9).setName("alex"));
+        aNewConditionalFlow(uworker1).when(aNewEqPredicate("$result.$age",10), ageEqualTen).execute(new WorkContext());
+    }
+
+    private static void testCompareGreaterPredicate() {
+        PrintMessageWork ageGreaterThanTen = new PrintMessageWork("age greater than 10");
+        PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+        PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+
+        UserPrintWork uworker1 = new UserPrintWork(new User().setAge(10).setName("john"));
+        UserPrintWork uworker2 =  new UserPrintWork(new User().setAge(20).setName("geo"));
+        UserPrintWork uworker3 =  new UserPrintWork(new User().setAge(9).setName("alex"));
+        aNewConditionalFlow(uworker3)
+            .when(aNewGreaterEqualPredicate("$result.$age",10), ageEqualTen, ageLessThanTen)
+            .execute(new WorkContext());
+    }
+
     public static void main(String[] args) {
 //        testAllPredicate();
 //        testAnyPredicate();
 //        testNonePredicate();
 //        testAndPredicate();
-        testOrPredicate();
+//        testOrPredicate();
+//        testCompareEqualPredicate();
+//        testCompareEqualPredicate2();
+        testCompareGreaterPredicate();
     }
+
 }

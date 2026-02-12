@@ -25,7 +25,7 @@ import com.baomibing.work.operator.*;
 import com.baomibing.work.predicate.WorkReportPredicate;
 import org.apache.commons.lang3.EnumUtils;
 
-public class Parser {
+public abstract class Parser {
 
     public static WorkReportPredicate parse(JsonPredicate jsonPredicate) {
         String operator = jsonPredicate.getOperator();
@@ -66,10 +66,15 @@ public class Parser {
                 predicate = nemptyPredicate(jsonPredicate);
                 break;
             case and:
+            case all:
                 predicate = and(jsonPredicate);
                 break;
             case or:
+            case any:
                 predicate = or(jsonPredicate);
+                break;
+            case none:
+                predicate = none(jsonPredicate);
                 break;
             default:
                 throw new WorkFlowException(ExceptionEnum.NOT_SUPPORT_THE_FUNCTION_OF_OPERATOR, operatorEnum.name());
@@ -124,5 +129,9 @@ public class Parser {
 
     private static WorkReportPredicate or(JsonPredicate jsonPredicate) {
         return new Or(jsonPredicate.getRight()).toWorkReportPredicate();
+    }
+
+    private static WorkReportPredicate none(JsonPredicate jsonPredicate) {
+        return new None(jsonPredicate.getRight()).toWorkReportPredicate();
     }
 }

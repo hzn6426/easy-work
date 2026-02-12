@@ -29,12 +29,7 @@ import java.util.Map;
  *
  * @author zening (316279829@qq.com)
  */
-public class Checker {
-
-	private Checker() {
-		throw new AssertionError("No " + getClass().getName() + " instances for you!");
-	}
-	
+public abstract class Checker {
 
 	public static <T> boolean BeNotNull(T reference) {
 		if (reference == null) {

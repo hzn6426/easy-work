@@ -21,7 +21,7 @@ import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
 import com.baomibing.work.work.Work;
 
-public class WorkUtil {
+public abstract class WorkUtil {
 
     public static Class<?> loadClass(String className) {
         try {

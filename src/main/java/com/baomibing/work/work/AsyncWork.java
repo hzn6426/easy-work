@@ -40,6 +40,7 @@ public class AsyncWork implements Work {
     @Getter
     private boolean beDone = false;
 
+    @Getter
     private boolean autoShutdown = false;
 
     @Setter

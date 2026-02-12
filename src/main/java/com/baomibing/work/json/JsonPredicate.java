@@ -19,12 +19,14 @@ package com.baomibing.work.json;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter
-@AllArgsConstructor
+@Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
 public class JsonPredicate {
     private Object left;
-    private Object right;
     private String operator;
+    private Object right;
 
 }

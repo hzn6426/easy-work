@@ -29,5 +29,8 @@ public enum OperatorEnum {
     empty,
     nempty,
     and,
-    or;
+    or,
+    all,
+    any,
+    none;
 }
