@@ -200,7 +200,7 @@ System.out.println(sequentialFlow.serialize());
 
 你可以在 `test/java` 中 查看更多的测试用例。
 
-更详细的信息，请参考 [WIKI](docs/WIKI.md)
+更详细的信息，请参考[wiki](WIKI_CN.md)
 
 ## 许可证
 
