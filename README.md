@@ -199,6 +199,28 @@ String json = ResourceReader.readJSON("json/example.json");
 SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
 System.out.println(sequentialFlow.serialize());
 ```
+## Rich conditional assertions
+EasyWork comes with a rich set of Predicate assertions, helping you build `conditional` workflows more quickly and easily. Even complex nested conditional workflows become simple. 
+The following code is an example of building a `conditional` workflow:
+```java
+PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+UserPrintWork userWork = new UserPrintWork(new User().setAge(15).setName("john"));
+aNewConditionalFlow(userWork)
+  .when(
+     andPredicate( 
+     //可以直接通过方法引用的方式来构建断言
+     aNewEqPredicate(WorkReport::getStatus, "COMPLETED"),
+     //可以直接通过表达式的方式 进行结果属性级联 workReport->result->age
+     aNewGreaterEqualPredicate("$result.$age",10),
+     //也可以通过表达式加方法引用方式构建 workReport->result
+     aNewEqPredicate("$result",User::getName, "john")
+   ),    
+   ageEqualTen,
+   ageLessThanTen
+ ).execute(new WorkContext());
+
+```
 
 You can view more test cases in `test/java`.
 

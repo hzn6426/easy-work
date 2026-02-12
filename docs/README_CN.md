@@ -196,11 +196,31 @@ String json = ResourceReader.readJSON("json/example.json");
 SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
 System.out.println(sequentialFlow.serialize());
 ```
-
+## 丰富的条件断言
+EasyWork内置了丰富的 Predicate 断言，帮助你更快速、简单的构建`条件`工作流，对于复杂的嵌套的`条件`工作流同样变得简单，
+以下代码为一个构建`条件`工作流的例子：
+```java
+PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+UserPrintWork userWork = new UserPrintWork(new User().setAge(15).setName("john"));
+aNewConditionalFlow(userWork)
+  .when(
+     andPredicate( 
+     //可以直接通过方法引用的方式来构建断言
+     aNewEqPredicate(WorkReport::getStatus, "COMPLETED"),
+     //可以直接通过表达式的方式 进行结果属性级联 workReport->result->age
+     aNewGreaterEqualPredicate("$result.$age",10),
+     //也可以通过表达式加方法引用方式构建 workReport->result
+     aNewEqPredicate("$result",User::getName, "john")
+   ),    
+   ageEqualTen,
+   ageLessThanTen
+ ).execute(new WorkContext());
+```
 
 你可以在 `test/java` 中 查看更多的测试用例。
 
-更详细的信息，请参考[wiki](WIKI_CN.md)
+更详细的信息，请参考 [WIKI](docs/WIKI_CN.md)
 
 ## 许可证
 

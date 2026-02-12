@@ -196,6 +196,23 @@ public class RoutePredicateTest {
             .execute(new WorkContext());
     }
 
+    private static void testCompareComplexPredicate() {
+        PrintMessageWork ageEqualTen = new PrintMessageWork("age equal than 10");
+        PrintMessageWork ageLessThanTen = new PrintMessageWork("age less than 10");
+        UserPrintWork userWork = new UserPrintWork(new User().setAge(15).setName("john"));
+        aNewConditionalFlow(userWork)
+            .when(
+                andPredicate(
+                    aNewEqPredicate(WorkReport::getStatus, "COMPLETED"),
+                    aNewGreaterEqualPredicate("$result.$age",10),
+                    aNewEqPredicate("$result", User::getName, "john")
+                ),
+                ageEqualTen,
+                ageLessThanTen
+            )
+            .execute(new WorkContext());
+    }
+
     public static void main(String[] args) {
 //        testAllPredicate();
 //        testAnyPredicate();
@@ -204,7 +221,8 @@ public class RoutePredicateTest {
 //        testOrPredicate();
 //        testCompareEqualPredicate();
 //        testCompareEqualPredicate2();
-        testCompareGreaterPredicate();
+//        testCompareGreaterPredicate();
+        testCompareComplexPredicate();
     }
 
 }
