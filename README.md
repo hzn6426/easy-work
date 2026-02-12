@@ -209,11 +209,11 @@ UserPrintWork userWork = new UserPrintWork(new User().setAge(15).setName("john")
 aNewConditionalFlow(userWork)
   .when(
      andPredicate( 
-     //可以直接通过方法引用的方式来构建断言
+     //Assertions can be directly constructed through method references
      aNewEqPredicate(WorkReport::getStatus, "COMPLETED"),
-     //可以直接通过表达式的方式 进行结果属性级联 workReport->result->age
+     //The result attributes can be cascaded directly through expressions: workReport->result->age
      aNewGreaterEqualPredicate("$result.$age",10),
-     //也可以通过表达式加方法引用方式构建 workReport->result
+     //It can also be constructed through expressions and method references, express: workReport->result
      aNewEqPredicate("$result",User::getName, "john")
    ),    
    ageEqualTen,
