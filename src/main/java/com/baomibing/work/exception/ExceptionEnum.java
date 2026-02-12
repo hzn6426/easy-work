@@ -44,7 +44,8 @@ public enum ExceptionEnum {
     VALUE_IN_AND_OR_MUST_BE_AN_COLLECTION(2003, "Value in 'and' 'or' Must be an collection!"),
     VALUES_IN_AND_OR_NOT_BE_EMPTY(2004, "Values in 'and' 'or' Must not be empty!"),
     VALUES_IN_AND_OR_NOT_BE_VALID(2005, "Values in 'and' 'or' Must be valid!"),
-
+    PREDICATE_NOT_A_JSON_PREDICATE(2006, "Predicate is not a json predicate, can not serialize!"),
+    ERROR_TO_GET_FIELD_NAME(2007, "Error to get the field name!")
     ;
 
     private int code;

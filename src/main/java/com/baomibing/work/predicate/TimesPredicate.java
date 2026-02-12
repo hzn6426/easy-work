@@ -19,6 +19,7 @@ package com.baomibing.work.predicate;
 
 import com.baomibing.work.report.WorkReport;
 import com.baomibing.work.util.Checker;
+import lombok.Getter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 /**
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class TimesPredicate implements WorkReportPredicate {
 
+    @Getter
     private final int times;
 
     private final AtomicInteger counter = new AtomicInteger();
@@ -66,4 +68,5 @@ public class TimesPredicate implements WorkReportPredicate {
     public static TimesPredicate times(int times, WorkReportPredicate reportPredicate) {
         return new TimesPredicate(times, reportPredicate);
     }
+
 }

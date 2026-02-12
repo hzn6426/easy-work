@@ -21,59 +21,25 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
 import com.baomibing.work.json.JsonPredicate;
-import com.baomibing.work.predicate.WorkReportPredicate;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.util.Checker;
 import com.baomibing.work.util.Strings;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Primitives;
-import org.apache.commons.lang3.reflect.FieldUtils;
 
-import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.baomibing.work.util.WorkUtil.assertNotEmpty;
-import static com.baomibing.work.util.WorkUtil.assertNotNull;
+import static com.baomibing.work.util.ClassUtil.*;
 
 public abstract class AbstractOperatorPredicate implements Predicate<Object> {
     protected Object report;
     protected Object left;
     protected Object right;
 
-    protected boolean isCollection(Object o) {
-        return o instanceof Collection;
-    }
-
-    protected boolean isString(Object o) {
-        return String.class.isAssignableFrom(o.getClass());
-    }
-
-    protected boolean isEnum(Object o) {
-        return Enum.class.isAssignableFrom(o.getClass());
-    }
-
-    protected boolean isMap(Object o) {
-        return o instanceof Map;
-    }
-
-    protected boolean isPrimitive(Object o) {
-        return Primitives.isWrapperType(o.getClass()) || isString(o);
-    }
-
-    private  <T> T getProperty(Object bean, String propertyName) {
-        assertNotNull(bean, ExceptionEnum.PROPERTY_BEAN_NOT_BE_NULL);
-        assertNotEmpty(propertyName, ExceptionEnum.PROPERTY_NAME_NOT_BE_EMPTY);
-        try {
-            Field field = FieldUtils.getField(bean.getClass(), propertyName, true);
-            return (T) field.get(bean);
-        } catch (Exception e) {
-            throw new WorkFlowException(ExceptionEnum.GET_PROPERTY_VALUE_OCCUR_AN_EXCEPTION, e.getMessage());
-        }
-    }
 
     protected List<JsonPredicate> right2Predicates() {
         if (!isCollection(right)) {
@@ -95,9 +61,7 @@ public abstract class AbstractOperatorPredicate implements Predicate<Object> {
         return predicates;
     }
 
-    public WorkReportPredicate toWorkReportPredicate() {
-        return workReport ->  this.test(workReport);
-    }
+    public abstract WorkReportJsonPredicate toWorkReportPredicate();
 
     public Object get(Object o) {
         if (Checker.BeNull(o)) {

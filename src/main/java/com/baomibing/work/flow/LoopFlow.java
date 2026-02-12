@@ -38,7 +38,6 @@ import org.apache.commons.lang3.EnumUtils;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
 
 import static com.baomibing.work.report.LoopWorkReport.aNewLoopWorkReport;
 import static com.baomibing.work.util.Parser.parse;
@@ -95,10 +94,39 @@ public class LoopFlow extends AbstractWorkFlow {
             loopFlow.withContinuePredicate(parse(continuePredicate.toJavaObject(JsonPredicate.class)));
         }
 
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        loopFlow.trace(Boolean.TRUE.equals(trace));
+
         //parse then work and lastly work
-        loopFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                loopFlow.then(thenWork);
+            }
+        }
         loopFlow.lastly(deserializeLastWork(flow));
         return loopFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json =  serializeBase();
+        json.put(Strings.TYPE, Strings.LOOP);
+        json.put(Strings.INFINITE, !bePoll);
+        if (Checker.BeNotNull(breakPredicate)) {
+            json.put(Strings.BREAK_PREDICATE, toJsonPredicate(breakPredicate).toJsonPredicate());
+        }
+        if (Checker.BeNotNull(continuePredicate)) {
+            json.put(Strings.CONTINUE_PREDICATE, toJsonPredicate(continuePredicate).toJsonPredicate());
+        }
+
+        json.put(Strings.WORKS, serializeWorks(workList));
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
     }
 
     @Override
@@ -114,7 +142,7 @@ public class LoopFlow extends AbstractWorkFlow {
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
         if (workReport.getStatus() != WorkStatus.STOPPED) {
-            if (Checker.BeNotEmpty(thenFuns) ) {
+            if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     bePoll = true;
                 }
@@ -228,18 +256,11 @@ public class LoopFlow extends AbstractWorkFlow {
         return this;
     }
 
-    @Override
-    public LoopFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
 
     @Override
     public LoopFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

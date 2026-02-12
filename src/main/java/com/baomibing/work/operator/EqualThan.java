@@ -17,6 +17,9 @@
 
 package com.baomibing.work.operator;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.util.Checker;
 
 import java.util.Objects;
@@ -26,6 +29,11 @@ public class EqualThan extends AbstractOperatorPredicate {
     public EqualThan(Object left, Object right) {
         this.left = left;
         this.right = right;
+    }
+
+    @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.eq.name(),  right);
     }
 
     @Override

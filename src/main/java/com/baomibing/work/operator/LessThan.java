@@ -17,6 +17,9 @@
 
 package com.baomibing.work.operator;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.util.Checker;
 
 public class LessThan extends AbstractOperatorPredicate {
@@ -24,6 +27,11 @@ public class LessThan extends AbstractOperatorPredicate {
     public LessThan(Object left, Object right) {
         this.left = left;
         this.right = right;
+    }
+
+    @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.lt.name(),  right);
     }
 
     @Override

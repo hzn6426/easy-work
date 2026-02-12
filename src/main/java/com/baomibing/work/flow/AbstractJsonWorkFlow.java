@@ -22,7 +22,10 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
+import com.baomibing.work.predicate.WorkReportPredicate;
 import com.baomibing.work.util.Checker;
+import com.baomibing.work.util.PredicationUtil;
 import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.AsyncWork;
 import com.baomibing.work.work.NamedPointWork;
@@ -66,12 +69,36 @@ public abstract class AbstractJsonWorkFlow {
         return workFlow;
     }
 
-    protected static Work deserializeThenWork(JSONObject flowJson) {
-        JSONObject work = flowJson.getJSONObject(Strings.THEN);
-        if (Checker.BeNotNull(work)) {
-            return deserializeWork(work);
+    protected static JSONObject serializeWorkFlow(Work work) {
+        JSONObject workJson = null;
+        if (work instanceof SequentialFlow) {
+            SequentialFlow sequentialFlow = (SequentialFlow) work;
+            workJson = sequentialFlow.serialize();
+        } else if (work instanceof RepeatFlow) {
+            RepeatFlow repeatFlow = (RepeatFlow) work;
+            workJson = repeatFlow.serialize();
+        } else if (work instanceof ParallelFlow) {
+            ParallelFlow parallelFlow = (ParallelFlow) work;
+            workJson = parallelFlow.serialize();
+        } else if (work instanceof LoopFlow) {
+            LoopFlow loopFlow = (LoopFlow) work;
+            workJson = loopFlow.serialize();
+        }  else if (work instanceof ConditionalFlow) {
+            ConditionalFlow conditionalFlow = (ConditionalFlow) work;
+            workJson = conditionalFlow.serialize();
+        }  else if (work instanceof ChooseFlow) {
+            ChooseFlow chooseFlow = (ChooseFlow) work;
+            workJson = chooseFlow.serialize();
         }
-        return null;
+        return workJson;
+    }
+
+    protected static List<Work> deserializeThenWork(JSONObject flowJson) {
+        JSONArray works = flowJson.getJSONArray(Strings.THEN);
+        if (Checker.BeNotEmpty(works)) {
+            return deserializeWorks(works);
+        }
+        return Lists.newArrayList();
     }
 
     protected static Work deserializeLastWork(JSONObject flowJson) {
@@ -84,7 +111,7 @@ public abstract class AbstractJsonWorkFlow {
 
     protected static Work deserializeWork(JSONObject workJson) {
         assertNotNull(workJson, ExceptionEnum.WORK_JSON_NOT_BE_NULL);
-        Work work = null;
+        Work work;
         String workClassName = workJson.getString(Strings.TYPE);
         work = deserializeWorkFlow(workJson, false);
         if (Checker.BeNotNull(work)) {
@@ -108,6 +135,37 @@ public abstract class AbstractJsonWorkFlow {
         return work;
     }
 
+    public static JSONObject serializeWork(Work work) {
+        assertNotNull(work, ExceptionEnum.WORK_JSON_NOT_BE_NULL);
+        JSONObject json = serializeWorkFlow(work);
+        if (Checker.BeNotNull(json)) {
+            return json;
+        }
+        json = new JSONObject();
+        if (work instanceof NamedPointWork) {
+            NamedPointWork namedPointWork = (NamedPointWork) work;
+            Work innerWork = namedPointWork.getWork();
+            json = JSONObject.parseObject(JSONObject.toJSONString(innerWork));
+            json.put(Strings.TYPE, innerWork.getClass().getName());
+            json.put(Strings.NAME, namedPointWork.getName());
+            if (Checker.BeNotEmpty(namedPointWork.getPoint())) {
+                json.put(Strings.POINT, namedPointWork.getPoint());
+            }
+        } else if (work instanceof AsyncWork) {
+            AsyncWork asyncWork = (AsyncWork) work;
+            Work innerWork = asyncWork.getWork();
+            json.put(Strings.AUTO_SHUTDOWN, asyncWork.isAutoShutdown());
+            json.put(Strings.TYPE, asyncWork.getClass().getName());
+            JSONObject innerJson = JSONObject.parseObject(JSONObject.toJSONString(innerWork));
+            innerJson.put(Strings.TYPE, innerWork.getClass().getName());
+            json.put(Strings.WORK, innerJson);
+        } else {
+            json = JSONObject.parseObject(JSONObject.toJSONString(work));
+            json.put(Strings.TYPE, work.getClass().getName());
+        }
+        return json;
+    }
+
     protected static List<Work> deserializeWorks(JSONArray jsonArray) {
         List<Work> works = Lists.newArrayList();
         assertNotEmpty(jsonArray, ExceptionEnum.WORKS_NOT_BE_NULL_OR_EMPTY);
@@ -118,10 +176,30 @@ public abstract class AbstractJsonWorkFlow {
         return works;
     }
 
+    protected static JSONArray serializeWorks(List<Work> works) {
+        assertNotEmpty(works, ExceptionEnum.WORKS_NOT_BE_NULL_OR_EMPTY);
+        JSONArray jsonArray = new JSONArray();
+        for (Work work : works) {
+            jsonArray.add(serializeWork(work));
+        }
+        return jsonArray;
+    }
+
     protected static WorkContext deserializeContext(JSONObject jsonObject) {
         if (Checker.BeEmpty(jsonObject)) {
             return null;
         }
         return jsonObject.toJavaObject(WorkContext.class);
+    }
+
+    protected static JSONObject serializeContext(WorkContext workContext) {
+        if (Checker.BeNull(workContext)) {
+            return new JSONObject();
+        }
+        return JSONObject.parseObject(JSONObject.toJSONString(workContext));
+    }
+
+    public WorkReportJsonPredicate toJsonPredicate(WorkReportPredicate predicate) {
+        return PredicationUtil.toJsonPredicate(predicate);
     }
 }

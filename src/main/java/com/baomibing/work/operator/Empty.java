@@ -17,22 +17,33 @@
 
 package com.baomibing.work.operator;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
 import com.baomibing.work.util.Checker;
 
 import java.util.Collection;
 import java.util.Map;
+
+import static com.baomibing.work.util.ClassUtil.isCollection;
+import static com.baomibing.work.util.ClassUtil.isMap;
 
 public class Empty extends AbstractOperatorPredicate {
 
     public Empty(Object left) {
         this.left = left;
     }
+
+    @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.empty.name(),  right);
+    }
     @Override
     public boolean test(Object o) {
         this.report = o;
         Object l = get(left);
         if (Checker.BeNull(l)) {
-            return false;
+            return true;
         }
         if (isCollection(l)) {
             Collection collection = (Collection) l;

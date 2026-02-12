@@ -122,6 +122,8 @@ System.out.println("execute to the break point `C_BREAK_POINT`");
 //从断点处继续执行，直到完成
 flow.execute();
 ```
+这不是一个非常有用的工作流，只是为了让你了解如何使用Easy Work而编写工作流。
+
 ## JSON构建工作流
 从 V1.0.8开始工作流支持基于 `JSON` 的构建，你可以通过 `JSON` 的方式构建任意复杂的工作流。
 基于以上图示中的例子，通过 JSON 构建工作流的片段为(example.json)：
@@ -186,14 +188,19 @@ String json = ResourceReader.readJSON("json/example.json");
 SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
 sequentialFlow.execute(new WorkContext());
 ```
+## 序列化工作流为 JSON
+ 从 V1.0.9 开始 EasyWork 支持序列化为 `JSON`, 你可以在构建完工作流后，通过serialize()方法序列化为 `JSON`.
+ 根据上图所示的示例，您可以使用以下代码序列化为JSON（有关更多示例，请参阅test/java/serializeTest）：
+```java
+String json = ResourceReader.readJSON("json/example.json");
+SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
+System.out.println(sequentialFlow.serialize());
+```
 
-这不是一个非常有用的工作流，只是为了让你了解如何使用Easy Work而编写工作流。
 
 你可以在 `test/java` 中 查看更多的测试用例。
 
 更详细的信息，请参考[wiki](WIKI_CN.md)
-
-<b>注意：此项目中 API 的部分命名方式 参考 <a href="https://github.com/j-easy/easy-flows">easy-flow</a></b>，一个非常简单易用的流程引擎。
 
 ## 许可证
 

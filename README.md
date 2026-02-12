@@ -123,7 +123,9 @@ System.out.println("execute to the break point `C_BREAK_POINT`");
 //recovery execute from the `C_BREAK_POINT` to the end.
 flow.execute();
 ```
-## Build workflow from json
+This is not a very useful workflow, but just to give you an idea about how to write workflows with Easy Work.
+
+## Build workflow from JSON
 Now (from version V1.0.8) EasyWork support JSON-based construction, allowing you to build workflows of arbitrary complexity using JSON.
 
 Based on the example shown in the diagram above, the fragment for constructing a workflow using JSON is (example. json):
@@ -188,13 +190,19 @@ String json = ResourceReader.readJSON("json/example.json");
 SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
 sequentialFlow.execute(new WorkContext());
 ```
-This is not a very useful workflow, but just to give you an idea about how to write workflows with Easy Work.
+## Serialize workflow to JSON
+Now (from version V1.0.9) EasyWork support serialize to `JSON`, After building the workflow, you can serialize it to `JSON` using the `serialize()` method.
+
+Based on the example shown in the diagram above, you can use the following code to serialize to JSON (for more example, please refer to test/java/serializeTest):
+```java
+String json = ResourceReader.readJSON("json/example.json");
+SequentialFlow sequentialFlow = (SequentialFlow) deserialize(json);
+System.out.println(sequentialFlow.serialize());
+```
 
 You can view more test cases in `test/java`.
 
-You can find more details about all of this in the [wiki](docs/WIKI.md)
-
-<b>Note: Some of the naming conventions for the APIs in this project refer to <a href="https://github.com/j-easy/easy-flows"> Easy flow</a></b>, a very simple and easy-to-use process engine.</b>
+You can find more details about all of this in the [WIKI](docs/WIKI.md)
 
 ## License
 

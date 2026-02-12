@@ -16,6 +16,7 @@
  */
 package com.baomibing.work.flow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.exception.ExceptionEnum;
 import com.baomibing.work.exception.WorkFlowException;
@@ -33,7 +34,6 @@ import com.google.common.collect.Iterables;
 import lombok.Getter;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.baomibing.work.work.WorkStatus.*;
@@ -55,7 +55,7 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
     @Getter
     protected String currentPoint = null;
 
-    protected final List<Function<WorkReport, Work>> thenFuns = new ArrayList<>();
+    protected final List<Work> thenWorks = new ArrayList<>();
 
     @Getter
     protected Work lastWork;
@@ -123,11 +123,11 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
         }
         List<Work> works = new ArrayList<>();
 
-        if (Checker.BeNotEmpty(thenFuns)) {
-            for (Function<WorkReport, Work> fun : thenFuns) {
-                works.add(wrapNamedPointWork(fun.apply(workReport)));
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work work : thenWorks) {
+                works.add(wrapNamedPointWork(work));
             }
-            thenFuns.clear();
+            thenWorks.clear();
         }
         if (Checker.BeEmpty(works)) {
             return workReport;
@@ -483,6 +483,17 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
             }
 
         }
+    }
+
+    protected JSONObject serializeBase() {
+        JSONObject json =  new JSONObject();
+        json.put(Strings.NAME, this.getName());
+        json.put(Strings.POLICY, this.workExecutePolicy.name());
+        json.put(Strings.TRACE, getBeTrace());
+        if (Checker.BeNotNull(workContext)) {
+            json.put(Strings.CONTEXT, serializeContext(workContext));
+        }
+        return json;
     }
 
 }

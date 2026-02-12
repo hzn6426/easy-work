@@ -17,10 +17,19 @@
 
 package com.baomibing.work.operator;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
+import com.baomibing.work.predicate.WorkReportJsonPredicate;
+
 public class NotContains extends Contains {
 
     public NotContains(Object left, Object right) {
         super(left, right);
+    }
+
+    @Override
+    public WorkReportJsonPredicate toWorkReportPredicate() {
+        return () -> new JsonPredicate(left, OperatorEnum.ncontains.name(),  right);
     }
 
     @Override

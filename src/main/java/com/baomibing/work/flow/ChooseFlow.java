@@ -35,7 +35,6 @@ import lombok.Getter;
 import org.apache.commons.lang3.EnumUtils;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static com.baomibing.work.report.ChooseWorkReport.aNewChooseWorkReport;
 import static com.baomibing.work.util.Parser.parse;
@@ -98,11 +97,50 @@ public class ChooseFlow extends AbstractWorkFlow {
         if (Checker.BeNotNull(beShortLogic)) {
             chooseFlow.witShortLogic(beShortLogic);
         }
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        chooseFlow.trace(Boolean.TRUE.equals(trace));
 
         //parse then work and lastly work
-        chooseFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                chooseFlow.then(thenWork);
+            }
+        }
         chooseFlow.lastly(deserializeLastWork(flow));
         return chooseFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json = serializeBase();
+        json.put(Strings.TYPE, Strings.CHOOSE);
+        json.put(Strings.SHORT_LOGIC, shortLogic);
+        JSONArray whenWorks = new JSONArray();
+        for (Work work : this.workList) {
+            if (work instanceof NamedDecideWork) {
+                NamedDecideWork namedDecideWork = (NamedDecideWork) work;
+                json.put(Strings.DECIDE, serializeWork(namedDecideWork.getDecideWork()));
+            } else if (work instanceof NamedWhenWork) {
+                NamedWhenWork namedWhenWork = (NamedWhenWork) work;
+                JSONObject whenWork = new JSONObject();
+                whenWork.put(Strings.PREDICATE, toJsonPredicate(namedWhenWork.getPredicate()).toJsonPredicate());
+                whenWork.put(Strings.WORK, serializeWork(namedWhenWork.getWork()));
+                whenWorks.add(whenWork);
+            } else if (work instanceof NamedOtherWiseWork) {
+                NamedOtherWiseWork namedOtherWiseWork = (NamedOtherWiseWork) work;
+                json.put(Strings.OTHERWISE, serializeWork(namedOtherWiseWork.getWork()));
+            }
+        }
+        json.put(Strings.WHEN, whenWorks);
+
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
+
     }
 
     @Override
@@ -118,7 +156,7 @@ public class ChooseFlow extends AbstractWorkFlow {
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
         if (workReport.getStatus() != WorkStatus.STOPPED) {
-            if (Checker.BeNotEmpty(thenFuns) ) {
+            if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     beExecuteThen = true;
                 }
@@ -235,18 +273,11 @@ public class ChooseFlow extends AbstractWorkFlow {
         return this;
     }
 
-    @Override
-    public ChooseFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
 
     @Override
     public ChooseFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

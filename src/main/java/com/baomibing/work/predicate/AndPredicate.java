@@ -17,27 +17,44 @@
 
 package com.baomibing.work.predicate;
 
+import com.baomibing.work.json.JsonPredicate;
+import com.baomibing.work.json.OperatorEnum;
 import com.baomibing.work.report.WorkReport;
+import com.baomibing.work.util.PredicationUtil;
 
-import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 /**
  * And predicate for work report
  *
  * @author zening (316279829@qq.com)
  */
-public class AndPredicate extends AbstractPredicate {
+public class AndPredicate extends AbstractMultiplePredicate {
 
-    private AndPredicate(Predicate<WorkReport>... predicates) {
-        predicate =  Stream.of(predicates).reduce(Predicate::and).orElse(x -> true);
+    private AndPredicate(WorkReportPredicate... predicates) {
+        thePredicates = Arrays.asList(predicates);
     }
 
-    public static AndPredicate andPredicate(Predicate<WorkReport>... predicates) {
+    public static AndPredicate andPredicate(WorkReportPredicate... predicates) {
         return new AndPredicate(predicates);
     }
 
     @Override
     public boolean apply(WorkReport workReport) {
-        return predicate.test(workReport);
+        return thePredicates.stream().allMatch(predicate -> predicate.apply(workReport));
+    }
+
+    @Override
+    public JsonPredicate toJsonPredicate() {
+        JsonPredicate jsonPredicate = new JsonPredicate();
+        jsonPredicate.setOperator(OperatorEnum.and.name());
+        List<JsonPredicate> jsonPredicates = new ArrayList<>();
+        for (WorkReportPredicate predicate : thePredicates) {
+            WorkReportJsonPredicate workReportJsonPredicate = PredicationUtil.toJsonPredicate(predicate);;
+            jsonPredicates.add(workReportJsonPredicate.toJsonPredicate());
+        }
+        jsonPredicate.setRight(jsonPredicates);
+        return jsonPredicate;
     }
 }

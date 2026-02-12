@@ -29,7 +29,7 @@ import com.baomibing.work.util.Strings;
 import com.baomibing.work.work.*;
 import org.apache.commons.lang3.EnumUtils;
 
-import java.util.function.Function;
+import java.util.List;
 
 import static com.baomibing.work.report.ConditionalWorkReport.aNewConditionalWorkReport;
 import static com.baomibing.work.util.Parser.parse;
@@ -79,11 +79,44 @@ public class ConditionalFlow extends AbstractWorkFlow {
         conditionalFlow.named(flow.getString(Strings.NAME));
         conditionalFlow.policy(EnumUtils.getEnum(WorkExecutePolicy.class, flow.getString(Strings.POLICY)));
         conditionalFlow.context(deserializeContext(flow.getJSONObject(Strings.CONTEXT)));
+        Boolean trace = flow.getBoolean(Strings.TRACE);
+        conditionalFlow.trace(Boolean.TRUE.equals(trace));
 
         //parse then work and lastly work
-        conditionalFlow.then(deserializeThenWork(flow));
+        List<Work> thenWorks = deserializeThenWork(flow);
+        if (Checker.BeNotEmpty(thenWorks)) {
+            for (Work thenWork : thenWorks) {
+                conditionalFlow.then(thenWork);
+            }
+        }
         conditionalFlow.lastly(deserializeLastWork(flow));
         return conditionalFlow;
+    }
+
+    public JSONObject serialize() {
+        JSONObject json = serializeBase();
+        json.put(Strings.TYPE, Strings.CONDITIONAL);
+        json.put(Strings.PREDICATE, toJsonPredicate(predicate).toJsonPredicate());
+        for (Work work : this.workList) {
+             if (work instanceof NamedDecideWork) {
+                NamedDecideWork namedDecideWork = (NamedDecideWork) work;
+                json.put(Strings.DECIDE, serializeWork(namedDecideWork.getDecideWork()));
+            } else if (work instanceof NamedConditionTrueWork) {
+                NamedConditionTrueWork namedConditionTrueWork = (NamedConditionTrueWork) work;
+                json.put(Strings.TRUE_WORK, serializeWork(namedConditionTrueWork.getWork()));
+            } else if (work instanceof NamedConditionFalseWork) {
+                NamedConditionFalseWork namedConditionFalseWork = (NamedConditionFalseWork) work;
+                json.put(Strings.FALSE_WORK, serializeWork(namedConditionFalseWork.getWork()));
+            }
+        }
+
+        if (Checker.BeNotEmpty(thenWorks)) {
+            json.put(Strings.THEN, serializeWorks(thenWorks));
+        }
+        if (Checker.BeNotNull(lastWork)) {
+            json.put(Strings.LASTLY, serializeWork(lastWork));
+        }
+        return json;
     }
 
     @Override
@@ -203,17 +236,9 @@ public class ConditionalFlow extends AbstractWorkFlow {
     }
 
     @Override
-    public ConditionalFlow then(Function<WorkReport, Work> fun) {
-        if (Checker.BeNotNull(fun)) {
-            thenFuns.add(fun);
-        }
-        return this;
-    }
-
-    @Override
     public ConditionalFlow then(Work work) {
         if (Checker.BeNotNull(work)) {
-            thenFuns.add(report -> work);
+            thenWorks.add(work);
         }
         return this;
     }

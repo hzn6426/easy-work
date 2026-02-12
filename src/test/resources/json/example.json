@@ -46,8 +46,8 @@
         "message": "h"
       }
   }],
-  "then": {
+  "then": [{
     "type": "work.PrintMessageWork",
     "message": "z"
-  }
+  }]
 }

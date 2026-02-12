@@ -680,16 +680,61 @@ Starting from version 1.0.7, various types have been added to assist with condit
 Match the result of the process execution (`MultipleWorkReport` type). If all `WorkReport` within it meet the conditions, it returns `true`; otherwise, it returns `false`
 
 ## The AnyPredicate
-Match the process results, and if one of the `WorkReports` within it meets the condition, it returns `true`; otherwise, it is returns `false`.
+Match the result of the process execution (`MultipleWorkReport` type). If one of the `WorkReports` within it meets the condition, it returns `true`; otherwise, it is returns `false`.
 
 ## The NonePredicate
-Match the process results. If none of the `WorkReports` in it meet the condition, it returns `true`; otherwise, it is returns `false`.
+Match the result of the process execution (`MultipleWorkReport` type). If none of the `WorkReports` in it meet the condition, it returns `true`; otherwise, it is returns `false`.
 
 ## The AndPredicate
 Match the process results, and if the `WorkReport` within it meets `all` the set combination conditions, it returns `true`; otherwise, it is returns `false`.
 
 ## The OrPredicate
 Match the process results, and if the `WorkReport` within it meets `any` set combination condition, it returns `true`; otherwise, it is returns `false`.
+
+## The ComparePredicate
+EasyWork has built-in 'compare' assertions to facilitate the construction of 'conditional' assertions, which are divided into the following parts:
+1. The `express` is an expression that is particularly useful for object nesting. For example, when you need to determine a property in result, you can use this expression to point the reference (target property) to the result. You need to add the prefix `$`, for example, `$result`
+2. The `left` part of the conditional construction determines the corresponding properties through method references, with the default object pointing to WorkReport, which can be changed through express.
+   For example, if express is `$result` and left is `User:: getName`, it indicates that the result stores the `User` object. The left side of the comparison will retrieve the `name` attribute value of the `User` object
+3. The `right` is the value part, which can be an array, string, integer, etc
+4. The `target` is the object pointed to when left takes a value, and the default is WorkReport
+
+Hint: You can ignore `left` and directly specify the corresponding `left` condition value through `express`. For example, `$Result.$name` indicates obtaining the `name` attribute in the result attribute of the `WorkReport`
+
+## The EqPredicate 
+Match the process result. If the `WorkReport` within it meets the `equality` condition, it is `true`; otherwise, it is `false`
+For example, build an `EqPredicte` using the following example:
+
+```java
+//predicate the value of workName equals to a
+aNewEqPredicate(WorkReport::getWorkName, "a")
+```
+## The NEqPredicate 
+Match the process result. If the `WorkReport` within it meets the `inequality` condition, it is `true`; otherwise, it is `false`
+
+## The GreaterEqualPredicate
+Match the process result. If the `WorkReport` within it meets the `greater or equal ` condition, it is `true`; otherwise, it is `false`
+
+## The GreaterPredicate 
+Match the process result. If the `WorkReport` within it meets the `greater` condition, it is `true`; otherwise, it is `false`
+
+## The LessEqualPredicate
+Match the process result. If the `WorkReport` within it meets the `less or equal` condition, it is `true`; otherwise, it is `false`
+
+## The LessPredicate 
+Match the process result. If the `WorkReport` within it meets the `less` condition, it is `true`; otherwise, it is `false`
+
+## The ContainsPredicate
+Match the process result. If the `WorkReport` within it meets the `contains` condition, it is `true`; otherwise, it is `false`
+
+## The NotContainsPredicate
+Match the process result. If the `WorkReport` within it meets the `not contains` condition, it is `true`; otherwise, it is `false`
+
+## The EmptyPredicate
+Match the process result. If the `WorkReport` within it meets the `empty or null` condition, it is `true`; otherwise, it is `false`
+
+## The NotEmptyPredicate
+Match the process result. If the `WorkReport` within it meets the `not empty and not null` condition, it is `true`; otherwise, it is `false`
 
 # Deserialization
 EasyWork supports building workflows from `JSON` data, and each workflow can set values according to corresponding properties. 
@@ -754,6 +799,12 @@ EasyWork provides basic operators to assist in conditional construction. The fol
 10. The `nempty` operator is used to determine if the `left` value is not empty or null, and there is no need for the `right` operator in this case
 11. The `and` operator used to determine if all the conditions in `right` are met, and there is no need to use `left` in this case
 12. The `or` operator is used to determine if any of the conditions in `right` are satisfied, and there is no need to use `left` in this case
+13. The `none` operator determines that all conditions in `right` are not met, and there is no need to use `left` in this case
 
 When using the `and` or `or` operator, the structure in its right is a `conditional construction` array, which contains at least one record.
+# Serialization
+EasyWork converts workflows into JSON data through the `serialize()` method. For certain conditional workflows (RepeatFlow, LoopFlow, ChooseFlow, ConditionalFlow), serialization must be achieved by implementing `WorkReportJsonPredicte`.
+
+EasyWork provides commonly used `WorkReportJsonPredicte` (refer to the `The predicate` section for details) to assist in building `conditional` workflows.
+
 
