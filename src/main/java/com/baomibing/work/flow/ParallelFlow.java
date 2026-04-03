@@ -234,7 +234,7 @@ public class ParallelFlow extends AbstractWorkFlow {
             MCffu<WorkReport, List<WorkReport>> reports = cffuFactory.iterableOps().mSupplyAllSuccessAsync(null, supplierList);
             multipleWorkReport = withFastAllSuccessResult(reports, context);
         } else {
-            throw new RuntimeException("Not support work execute policy:" + workExecutePolicy);
+            throw new WorkFlowException(ExceptionEnum.NOT_SUPPORT_THE_POLICY, workExecutePolicy);
         }
         multipleWorkReport.setWorkName(name);
         return multipleWorkReport;
