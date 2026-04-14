@@ -36,6 +36,7 @@ import org.apache.commons.lang3.EnumUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
@@ -164,7 +165,7 @@ public class ParallelFlow extends AbstractWorkFlow {
 
     @Override
     public void doExecute(String point) {
-        if (beStopped()) {
+        if (beStopped() || bePaused()) {
             return;
         }
 
@@ -178,17 +179,28 @@ public class ParallelFlow extends AbstractWorkFlow {
         WorkReport report;
 
         if (work instanceof NamedParallelWork) {
-            report = doParallelWork((NamedParallelWork) work);
+            report = doParallelWork((NamedParallelWork) work, point);
         } else {
             report = doSingleWork(work, workContext, point);
             multipleWorkReport.addReport(report);
+        }
+
+        if (bePaused()) {
+            if (!(work instanceof NamedParallelWork)) {
+                queue.offerFirst(work);
+                pointWork = queue.peek();
+            }
+            return;
         }
 
         if (beStopped()) {
             if (work instanceof WorkFlow) {
                 queue.offerFirst(work);
             }
-            pointWork = queue.peek();
+
+            if (!(work instanceof NamedParallelWork)) {
+                pointWork = queue.peek();
+            }
             return;
         }
 
@@ -197,7 +209,7 @@ public class ParallelFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
 
@@ -205,15 +217,47 @@ public class ParallelFlow extends AbstractWorkFlow {
 
     @Override
     public void locate2CurrentWork() {
-        locate2CurrentWorkInternal();
+//        locate2CurrentWorkInternal();
+        queue = new LinkedList<>();
+        if (Checker.BeNull(this.pointWork)) {
+            queue.addAll(workList);
+            return;
+        }
+        String currentWorkName = getNameOfWork(pointWork);
+        boolean beFind = false;
+        for (Work work : workList) {
+            if (work instanceof NamedParallelWork) {
+                NamedParallelWork namedParallelWork = (NamedParallelWork) work;
+                for (Work supplierWork : namedParallelWork.getSupplierWorks()) {
+                    if (currentWorkName.equals(getNameOfWork(supplierWork))) {
+                        queue.add(0, supplierWork);
+                        beFind = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (beFind == false) {
+            int index = Iterables.indexOf(workList, w -> currentWorkName.equals(getNameOfWork(w)));
+            queue.addAll(workList.subList(index, workList.size()));
+        }
+        pointWork = null;
     }
 
-    private MultipleWorkReport doParallelWork(NamedParallelWork wrapper) {
+    private MultipleWorkReport doParallelWork(NamedParallelWork wrapper, String point) {
         WorkContext context = getDefaultWorkContext();
 
         List<Work> works = wrapper.getSupplierWorks();
         List<Supplier<WorkReport>> supplierList  = new ArrayList<>();
-        works.forEach(work -> supplierList.add(() ->  doSingleWork(work, context, Strings.EMPTY)));
+        works.forEach(work -> {
+            supplierList.add(() ->  {
+               WorkReport report =  doSingleWork(work, context, point);
+               if (report.getStatus() == WorkStatus.STOPPED || report.getStatus() == WorkStatus.PAUSED) {
+                   pointWork = work;
+               }
+               return report;
+            });
+        });
 
         if (WorkExecutePolicy.FAST_SUCCESS == workExecutePolicy) {
             Cffu<WorkReport> report = cffuFactory.iterableOps().mSupplyAnySuccessAsync(supplierList);

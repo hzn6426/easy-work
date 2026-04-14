@@ -25,7 +25,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class LoopIndexWorkReport extends DefaultWorkReport {
+public class LoopIndexWorkReport extends MultipleWorkReport {
 
     private int index = 0;
     private int length = 0;
@@ -34,22 +34,26 @@ public class LoopIndexWorkReport extends DefaultWorkReport {
         return new LoopIndexWorkReport();
     }
 
-    public void with(WorkReport workReport) {
-        this.error =  workReport.getError();
-        this.result = workReport.getResult();
-        this.status = workReport.getStatus();
-        this.result = workReport.getResult();
-    }
+//    public void with(WorkReport workReport) {
+//        this.error =  workReport.getError();
+//        this.result = workReport.getResult();
+//        this.status = workReport.getStatus();
+//        if (workReport instanceof  DefaultWorkReport) {
+//            this.stoppedStatus = ((DefaultWorkReport) workReport).getStoppedStatus();
+//        }
+//        this.workContext = workReport.getWorkContext();
+//    }
 
-    public LoopIndexWorkReport copy() {
-        LoopIndexWorkReport report = aNewLoopWorkReport();
-        report.setStatus(getStatus());
-        report.setWorkName(getWorkName());
-        report.setWorkContext(getWorkContext());
-        report.setError(getError());
-        report.setResult(getResult());
-        report.setIndex(index);
-        report.setLength(length);
-        return report;
-    }
+//    public LoopIndexWorkReport copy() {
+//        LoopIndexWorkReport report = aNewLoopWorkReport();
+//        report.setStatus(getStatus());
+//        report.setWorkName(getWorkName());
+//        report.setWorkContext(getWorkContext());
+//        report.setError(getError());
+//        report.setResult(getResult());
+//        report.setIndex(index);
+//        report.setLength(length);
+//        report.setStoppedStatus(getStoppedStatus());
+//        return report;
+//    }
 }

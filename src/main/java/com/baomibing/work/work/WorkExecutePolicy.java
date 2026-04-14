@@ -32,7 +32,7 @@ public enum WorkExecutePolicy {
     FAST_ALL,
     //return all complete result, return FAILED if not have any success result.
     FAST_ALL_SUCCESS,
-    //when an EXCEPTION occurs , throw the exception, return COMPLETED if not have any exception.
+    //when an EXCEPTION occurs, throw the exception, return COMPLETED if not have any exception.
     FAST_EXCEPTION
     ;
 }

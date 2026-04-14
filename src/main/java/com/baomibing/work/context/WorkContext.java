@@ -17,6 +17,7 @@
 package com.baomibing.work.context;
 
 import com.baomibing.work.util.Checker;
+import com.baomibing.work.work.Work;
 import lombok.Getter;
 
 import java.util.Map;
@@ -31,8 +32,15 @@ public class WorkContext {
     @Getter
     private final Map<String, Object> contextMap = new ConcurrentHashMap<>();
 
+    private final ThreadLocal<Work> localMap = new ThreadLocal<>();
+
     public WorkContext put(String key, Object value) {
         contextMap.put(key, value);
+        return this;
+    }
+
+    public WorkContext putLocal(Work work) {
+        localMap.set(work);
         return this;
     }
 
@@ -40,13 +48,27 @@ public class WorkContext {
         return contextMap.get(key);
     }
 
+    public Work getLocal() {
+        return localMap.get();
+    }
+
     public WorkContext remove(String key) {
         contextMap.remove(key);
         return this;
     }
 
+    public WorkContext removeLocal() {
+        localMap.remove();
+        return this;
+    }
+
     public WorkContext clear() {
         contextMap.clear();
+        return this;
+    }
+
+    public WorkContext clearLocal() {
+        localMap.remove();
         return this;
     }
 

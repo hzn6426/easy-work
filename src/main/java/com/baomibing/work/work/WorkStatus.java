@@ -25,4 +25,5 @@ public enum WorkStatus {
     COMPLETED,
     FAILED,
     STOPPED,
+    PAUSED,
 }

@@ -137,7 +137,7 @@ public class ConditionalFlow extends AbstractWorkFlow {
 
     @Override
     public void doExecute(String point) {
-        if (beStopped()) {
+        if (beStopped() || bePaused()) {
             return;
         }
 
@@ -184,6 +184,12 @@ public class ConditionalFlow extends AbstractWorkFlow {
 
         multipleWorkReport.addReport(report);
 
+        if (bePaused()) {
+            queue.offerFirst(work);
+            pointWork = queue.peek();
+            return;
+        }
+
         if (beStopped()) {
             if (beWorkFlow) {
                 queue.offerFirst(work);
@@ -197,7 +203,7 @@ public class ConditionalFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
     }

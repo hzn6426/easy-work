@@ -120,7 +120,7 @@ public class RepeatFlow extends AbstractWorkFlow {
 
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
-        if (workReport.getStatus() != WorkStatus.STOPPED) {
+        if (workReport.getStatus() != WorkStatus.STOPPED && workReport.getStatus() != WorkStatus.PAUSED) {
             if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     bePoll = true;
@@ -151,9 +151,9 @@ public class RepeatFlow extends AbstractWorkFlow {
 
         boolean beWorkFlow = work instanceof WorkFlow;
         boolean beStopped = beStopped();
-
+        boolean bePaused = bePaused();
         if (beWorkFlow) {
-            if (!beStopped) {
+            if (!beStopped && !bePaused) {
                 if ( workReportPredicate.apply(report)) {
                     return;
                 }
@@ -162,6 +162,14 @@ public class RepeatFlow extends AbstractWorkFlow {
             if ( workReportPredicate.apply(report)) {
                 return;
             }
+        }
+
+        if (bePaused) {
+            if (bePoll) {
+                queue.offerFirst(work);
+            }
+            pointWork = queue.peek();
+            return;
         }
 
         if (beStopped) {
@@ -179,7 +187,7 @@ public class RepeatFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
 

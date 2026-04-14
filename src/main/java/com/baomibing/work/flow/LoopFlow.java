@@ -141,7 +141,7 @@ public class LoopFlow extends AbstractWorkFlow {
 
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
-        if (workReport.getStatus() != WorkStatus.STOPPED) {
+        if (workReport.getStatus() != WorkStatus.STOPPED && workReport.getStatus() != WorkStatus.PAUSED) {
             if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     bePoll = true;
@@ -153,7 +153,7 @@ public class LoopFlow extends AbstractWorkFlow {
 
     @Override
     public void doExecute(String point) {
-        if (beStopped()) {
+        if (beStopped() || bePaused()) {
             return;
         }
 
@@ -186,11 +186,19 @@ public class LoopFlow extends AbstractWorkFlow {
         //cache the result
         WorkReport report = doSingleWork(work, workContext, point);
 
-        indexReport.with(report);
-        multipleWorkReport.addReport(indexReport.copy());
+        indexReport.addReport(report);
+        multipleWorkReport.addReport(report);
 
         index++;
 
+        if (bePaused()) {
+            if (bePoll == false) {
+                queue.removeLast();
+            }
+            queue.offerFirst(work);
+            pointWork = queue.peek();
+            return;
+        }
 
         if (beStopped()) {
             if (work instanceof WorkFlow) {
@@ -208,7 +216,7 @@ public class LoopFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
     }

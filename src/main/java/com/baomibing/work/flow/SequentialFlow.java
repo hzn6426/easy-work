@@ -109,7 +109,7 @@ public class SequentialFlow extends AbstractWorkFlow {
 
     @Override
     public void doExecute(String point) {
-        if (beStopped()) {
+        if (beStopped() || beStopped()) {
             return;
         }
 
@@ -124,6 +124,11 @@ public class SequentialFlow extends AbstractWorkFlow {
         WorkReport report = doSingleWork(work, workContext, point);
         multipleWorkReport.addReport(report);
 
+        if (bePaused()) {
+            queue.offerFirst(work);
+            pointWork = queue.peek();
+            return;
+        }
         if (beStopped()) {
             if (work instanceof WorkFlow) {
                 queue.offerFirst(work);
@@ -137,7 +142,7 @@ public class SequentialFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
 
