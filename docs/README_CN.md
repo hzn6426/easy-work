@@ -217,7 +217,51 @@ aNewConditionalFlow(userWork)
    ageLessThanTen
  ).execute(new WorkContext());
 ```
-
+## 暂停并且重做
+从V1.1.0开始 `EasyWork` 提供了暂停并重做支持，你可以在Work的`execute`方法中，根据需要进行暂停工作流，直到继续执行，`EasyWork`将会重新执行该Work的`execute`方法。
+该方法主要用来满足`AI`模式下，等待并重新执行该Work，直到满足特定条件。你可以在`任意`Work的`execute`方法的`任意`位置来调用`doPause`方法来达到此要求。
+以下是一个暂停并重做的例子：
+```java
+@Setter
+public class RedoWork implements Work {
+ private String name;
+ private Integer age;
+ private String sex;
+ @Override
+ public Object execute(WorkContext context) {
+  boolean nameEmpty = Checker.BeEmpty(name), ageEmpty = Checker.BeNull(age),sexEmpty = Checker.BeEmpty(sex);
+  if (nameEmpty) {
+   System.out.println("name is empty, please input it !");
+   doPause(context);
+   return aNewWorkReport();
+  } else if (ageEmpty) {
+   System.out.println("age is empty, please input it !");
+   doPause(context);
+   return aNewWorkReport();
+  } else if (sexEmpty) {
+   System.out.println("sex is empty, please input it !");
+   doPause(context);
+   return aNewWorkReport();
+  } else {
+   System.out.println("all info are not empty, do it!");
+   return aNewWorkReport();
+  }
+ }
+}
+RedoWork redoWork = new RedoWork();
+PrintMessageWork a = new PrintMessageWork("a");
+PrintMessageWork b = new PrintMessageWork("b");
+SequentialFlow flow = aNewSequentialFlow(a,redoWork,b);
+//flow will be paused when invoke the `doPause` method and redo it when invoke the `execute` method
+flow.execute();
+redoWork.setName("Jerry");
+flow.execute();
+redoWork.setAge(18);
+flow.execute();
+redoWork.setSex("male");
+//flow will redo the work until all info are not empty
+flow.execute();
+```
 你可以在 `test/java` 中 查看更多的测试用例。
 
 更详细的信息，请参考 [WIKI](docs/WIKI_CN.md)

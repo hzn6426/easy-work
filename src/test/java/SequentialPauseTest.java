@@ -18,10 +18,25 @@
 import com.baomibing.work.flow.SequentialFlow;
 import work.PausePrintMessageWork;
 import work.PrintMessageWork;
+import work.RedoWork;
 
 import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
 
 public class SequentialPauseTest {
+
+    private static void test() {
+        RedoWork redoWork = new RedoWork();
+        PrintMessageWork a = new PrintMessageWork("a");
+        PrintMessageWork b = new PrintMessageWork("b");
+        SequentialFlow flow = aNewSequentialFlow(a,redoWork,b);
+        flow.execute();
+        redoWork.setName("Jerry");
+        flow.execute();
+        redoWork.setAge(18);
+        flow.execute();
+        redoWork.setSex("male");
+        flow.execute();
+    }
 
     private static void test1() {
         PrintMessageWork a = new PrintMessageWork("a");
@@ -134,7 +149,8 @@ public class SequentialPauseTest {
 //        test1();
 //        test2();
 //        test3();
-        testThenPoint();
+//        testThenPoint();
+        test();
     }
 
 
