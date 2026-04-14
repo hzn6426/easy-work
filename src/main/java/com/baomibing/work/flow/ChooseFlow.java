@@ -62,7 +62,7 @@ public class ChooseFlow extends AbstractWorkFlow {
     private boolean beExecutedWhen = Boolean.FALSE;
     //executing then block
     private boolean beExecuteThen = Boolean.FALSE;
-    //the decide work report
+    //the decided work report
     private WorkReport predicateWorkReport;
 
     private  ChooseFlow(Work theWork, List<WhenWork> whenWorks, Work otherWiseWork) {
@@ -155,7 +155,7 @@ public class ChooseFlow extends AbstractWorkFlow {
 
     @Override
     public MultipleWorkReport executeThen(MultipleWorkReport workReport, String point) {
-        if (workReport.getStatus() != WorkStatus.STOPPED) {
+        if (workReport.getStatus() != WorkStatus.STOPPED && workReport.getStatus() != WorkStatus.PAUSED) {
             if (Checker.BeNotEmpty(thenWorks) ) {
                 if (pointWork == null) {
                     beExecuteThen = true;
@@ -167,7 +167,7 @@ public class ChooseFlow extends AbstractWorkFlow {
 
     @Override
     public void doExecute(String point) {
-        if (beStopped()) {
+        if (beStopped() || bePaused()) {
             return;
         }
 
@@ -213,6 +213,12 @@ public class ChooseFlow extends AbstractWorkFlow {
 
         multipleWorkReport.addReport(report);
 
+        if (bePaused()) {
+            queue.offerFirst(work);
+            pointWork = queue.peek();
+            return;
+        }
+
         if (beStopped()) {
             if (beWorkFlow) {
                 queue.offerFirst(work);
@@ -230,7 +236,7 @@ public class ChooseFlow extends AbstractWorkFlow {
         }
 
         //execute to next
-        if (report.getStatus() != WorkStatus.STOPPED) {
+        if (report.getStatus() != WorkStatus.STOPPED && report.getStatus() != WorkStatus.PAUSED) {
             doExecute(point);
         }
     }

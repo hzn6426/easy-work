@@ -118,7 +118,7 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
     }
 
     protected MultipleWorkReport executeThenInternal(MultipleWorkReport workReport, String point) {
-        if (workReport.getStatus() == WorkStatus.STOPPED) {
+        if (workReport.getStatus() == WorkStatus.STOPPED || workReport.getStatus() == WorkStatus.PAUSED) {
             return workReport;
         }
         List<Work> works = new ArrayList<>();
@@ -213,10 +213,14 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
                         listener.onWorkExecute((DefaultWorkReport) workReport, context, null);
                     }
                 }
+                if (pointWork.isBePauseAndRedo()) {
+                    ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(PAUSED);
+                    pointWork.clearPause();
+                }
             }
 
             if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
-                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(STOPPED);
+                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(STOPPED).setStoppedWorkName(getNameOfWork(work));
             }
         }
         return workReport;
@@ -238,9 +242,13 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
                 if (Checker.BeNotNull(listener)) {
                     listener.onWorkExecute((DefaultWorkReport) workReport, context, e);
                 }
+                if (pointWork.isBePauseAndRedo()) {
+                    ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(PAUSED);
+                    pointWork.clearPause();
+                }
             }
             if (Checker.BeNotEmpty(point) && beThePoint(work, point)) {
-                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(WorkStatus.STOPPED);
+                ((DefaultWorkReport) workReport).setStoppedStatus(workReport.getStatus()).setStatus(WorkStatus.STOPPED).setStoppedWorkName(getNameOfWork(work));
             }
         }
         return workReport;
@@ -248,6 +256,13 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
 
     protected boolean beStopped() {
         if (multipleWorkReport.getStatus() == WorkStatus.STOPPED) {
+            return true;
+        }
+        return false;
+    }
+
+    protected boolean bePaused() {
+        if (multipleWorkReport.getStatus() == PAUSED) {
             return true;
         }
         return false;
@@ -463,6 +478,8 @@ public abstract class AbstractWorkFlow extends AbstractJsonWorkFlow implements  
         if (report instanceof DefaultWorkReport) {
             DefaultWorkReport defaultWorkReport = (DefaultWorkReport) report;
             if (defaultWorkReport.getStatus() == STOPPED) {
+                defaultWorkReport.setStatus(defaultWorkReport.getStoppedStatus()).setStoppedStatus(null);
+            } else if (defaultWorkReport.getStatus() == PAUSED) {
                 defaultWorkReport.setStatus(defaultWorkReport.getStoppedStatus()).setStoppedStatus(null);
             }
             return;

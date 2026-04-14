@@ -16,117 +16,142 @@
  */
 
 import com.baomibing.work.flow.SequentialFlow;
+import work.PausePrintMessageWork;
 import work.PrintMessageWork;
+import work.RedoWork;
 
 import static com.baomibing.work.flow.SequentialFlow.aNewSequentialFlow;
-import static com.baomibing.work.work.NamedPointWork.aNamePointWork;
 
-public class SequentialPointTest {
+public class SequentialPauseTest {
+
+    private static void test() {
+        RedoWork redoWork = new RedoWork();
+        PrintMessageWork a = new PrintMessageWork("a");
+        PrintMessageWork b = new PrintMessageWork("b");
+        SequentialFlow flow = aNewSequentialFlow(a,redoWork,b);
+        flow.execute();
+        redoWork.setName("Jerry");
+        flow.execute();
+        redoWork.setAge(18);
+        flow.execute();
+        redoWork.setSex("male");
+        flow.execute();
+    }
 
     private static void test1() {
         PrintMessageWork a = new PrintMessageWork("a");
 
         PrintMessageWork b = new PrintMessageWork("b");
-        PrintMessageWork c = new PrintMessageWork("c");
+        PausePrintMessageWork c = new PausePrintMessageWork("c", true);
         PrintMessageWork d = new PrintMessageWork("d");
 
-        PrintMessageWork e = new PrintMessageWork("e");
+        PausePrintMessageWork e = new PausePrintMessageWork("e", true);
         PrintMessageWork f = new PrintMessageWork("f");
 
         SequentialFlow flow = aNewSequentialFlow(
             a,
             b,
-            aNamePointWork(c).named("THE_C").point("CC"),
+            c,
             d,
-            aNamePointWork(e).named("THE_E").point("EE"),
+            e,
             f);
-        flow.execute("CC");
-        System.out.println("execute to CC..");
-        flow.execute("EE");
-        System.out.println("execute to EE..");
-        flow.execute("");
+//        flow.execute("CC");
+//        System.out.println("execute to CC..");
+//        flow.execute("EE");
+//        System.out.println("execute to EE..");
+        flow.execute();
+        System.out.println("c paused....");
+        flow.execute();
+        System.out.println("e paused....");
+        flow.execute();
     }
 
     private static void test2() {
         PrintMessageWork a = new PrintMessageWork("a");
 
         PrintMessageWork b = new PrintMessageWork("b");
-        PrintMessageWork c = new PrintMessageWork("c");
+        PausePrintMessageWork c = new PausePrintMessageWork("c", true);
         PrintMessageWork d = new PrintMessageWork("d");
 
         PrintMessageWork e = new PrintMessageWork("e");
         PrintMessageWork f = new PrintMessageWork("f");
 
-        PrintMessageWork g = new PrintMessageWork("g");
+        PausePrintMessageWork g = new PausePrintMessageWork("g", true);
         PrintMessageWork h = new PrintMessageWork("h");
 
         SequentialFlow flow = aNewSequentialFlow(
             a,
             b,
-            aNewSequentialFlow(aNamePointWork(c).named("THE_C").point("CC"),d),
+            aNewSequentialFlow(c,d),
             e,
             f,
-            aNamePointWork(g).named("THE_G").point("GG"),
+            g,
             h);
-        flow.execute("CC");
-        System.out.println("execute to CC..");
-        flow.execute("GG");
-        System.out.println("execute to GG..");
-        flow.execute("");
+        flow.execute();
+        System.out.println("The c paused....");
+        flow.execute();
+        System.out.println("The g paused....");
+        flow.execute();
     }
 
     private static void test3() {
         PrintMessageWork a = new PrintMessageWork("a");
 
         PrintMessageWork b = new PrintMessageWork("b");
-        PrintMessageWork c = new PrintMessageWork("c");
+        PausePrintMessageWork c = new PausePrintMessageWork("c", true);
         PrintMessageWork d = new PrintMessageWork("d");
 
         PrintMessageWork e = new PrintMessageWork("e");
         PrintMessageWork f = new PrintMessageWork("f");
 
-        PrintMessageWork g = new PrintMessageWork("g");
+        PausePrintMessageWork g = new PausePrintMessageWork("g", true);
         PrintMessageWork h = new PrintMessageWork("h");
 
         SequentialFlow flow = aNewSequentialFlow(
             a,
-            aNewSequentialFlow(aNewSequentialFlow(b,aNamePointWork(c).named("THE_C").point("CC")),d),
+            aNewSequentialFlow(aNewSequentialFlow(b,c),d),
             e,
             f,
-            aNamePointWork(g).named("THE_G").point("GG"),
+            g,
             h);
-        flow.execute("CC");
-        System.out.println("execute to CC..");
-        flow.execute("GG");
-        System.out.println("execute to GG..");
+        flow.execute();
+        System.out.println("The c paused....");
+        flow.execute();
+        System.out.println("The g paused....");
         flow.execute("");
     }
 
     private static void testThenPoint() {
         PrintMessageWork a = new PrintMessageWork("a");
         PrintMessageWork b = new PrintMessageWork("b");
-        PrintMessageWork c = new PrintMessageWork("c");
+        PausePrintMessageWork c = new PausePrintMessageWork("c", true);
         PrintMessageWork d = new PrintMessageWork("d");
         PrintMessageWork e = new PrintMessageWork("e");
         PrintMessageWork f = new PrintMessageWork("f");
-        PrintMessageWork g = new PrintMessageWork("g");
+        PausePrintMessageWork g = new PausePrintMessageWork("g",true);
         PrintMessageWork h = new PrintMessageWork("h");
 
         SequentialFlow flow =  aNewSequentialFlow(
             a,
             b,
-            aNewSequentialFlow(aNamePointWork(c).named("THE_C").point("CC"),d),
+            aNewSequentialFlow(c,d),
             e
-            ).then(f).then(aNamePointWork(g).named("THE_G").point("GG")).then(h);
-        flow.execute("CC");
-        System.out.println("execute to CC..");
-        flow.execute("GG");
-        System.out.println("execute to GG..");
-        flow.execute("");
+            ).then(f).then(g).then(h);
+        flow.execute();
+        System.out.println("The c paused....");
+        flow.execute();
+        System.out.println("The g paused....");
+        flow.execute();
     }
 
     public static void main(String[] args) {
 //        testThenPoint();
-        test3();
+//        test1();
+//        test2();
+//        test3();
+//        testThenPoint();
+        test();
     }
+
+
 }

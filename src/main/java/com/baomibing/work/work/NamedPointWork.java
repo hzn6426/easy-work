@@ -34,6 +34,9 @@ public class NamedPointWork extends NamedWork {
     private WorkExecuteListener workExecuteListener;
     @Getter
     private String point;
+    //pause the work and redo the work
+    @Getter
+    private boolean bePauseAndRedo = Boolean.FALSE;
 
     @Getter
     private boolean beExecuted = false;
@@ -74,7 +77,21 @@ public class NamedPointWork extends NamedWork {
     @Override
     public Object execute(WorkContext context) {
         this.beExecuted = true;
+        context.putLocal(this);
         return work.execute(context);
+    }
+
+    private void doPaused() {
+        this.bePauseAndRedo = Boolean.TRUE;
+    }
+
+    public void clearPause() {
+        this.bePauseAndRedo = Boolean.FALSE;
+    }
+
+    @Override
+    public void doPause(WorkContext context) {
+        doPaused();
     }
 
     public NamedPointWork addWorkExecuteListener(WorkExecuteListener workExecuteListener) {

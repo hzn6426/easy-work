@@ -51,4 +51,5 @@ public abstract class Strings {
     public static final String THEN =  "then";
     public static final String LASTLY =  "lastly";
     public static final String TRACE = "trace";
+    public static final String WRAP_NAMED_POINT_WORK = "_wrap_name_point_work_";
 }

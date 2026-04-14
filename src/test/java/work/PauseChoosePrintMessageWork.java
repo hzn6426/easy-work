@@ -14,29 +14,32 @@
  * the License.
  *
  */
-package com.baomibing.work.work;
+
+package work;
+
 
 import com.baomibing.work.context.WorkContext;
-import com.baomibing.work.util.Checker;
+import com.baomibing.work.work.Work;
 
-/**
- * This interface represents a unit of work.
- *
- * @author zening (316279829@qq.com)
- */
-@FunctionalInterface
-public interface  Work  {
-    Object execute(WorkContext context);
+import java.util.Random;
 
-    default void doPause(WorkContext context) {
-        Object o = context.getLocal();
-        if (Checker.BeNotNull(o)) {
-            try {
-                NamedPointWork work = (NamedPointWork) o;
-                work.doPause(context);
-            } finally {
-                context.removeLocal();
-            }
+public class PauseChoosePrintMessageWork implements Work {
+
+    private boolean pause;
+    public PauseChoosePrintMessageWork(boolean pause) {
+        this.pause = pause;
+    }
+
+    @Override
+    public Integer execute(WorkContext workContext) {
+        int minimum = 1, maximum = 10;
+        Random rand = new Random();
+        Integer random = minimum + rand.nextInt((maximum - minimum) + 1);
+        System.out.println("random:" + random);
+        if (Boolean.TRUE.equals(pause)) {
+            doPause(workContext);
+            pause = false;
         }
+        return random;
     }
 }

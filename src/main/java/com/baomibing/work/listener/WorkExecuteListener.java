@@ -18,7 +18,6 @@ package com.baomibing.work.listener;
 
 import com.baomibing.work.context.WorkContext;
 import com.baomibing.work.report.DefaultWorkReport;
-import com.baomibing.work.report.WorkReport;
 
 /**
  * A listener for work executing

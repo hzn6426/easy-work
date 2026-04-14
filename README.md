@@ -221,7 +221,53 @@ aNewConditionalFlow(userWork)
  ).execute(new WorkContext());
 
 ```
+## Pause and redo
+From version V1.1.0, `EasyWork` provides `pause` and `redo` support. You can pause the workflow in the `execute` method of a Work as needed, and `EasyWork` will re-execute the `execute` method of that Work when resuming.
+This method is primarily used to meet the requirements in the `AI` mode, where the Work is waited for and re-executed until specific conditions are met.
 
+You can call the `doPause` method at `any` position of the execute method in `any` Work to achieve this requirement.
+The following code is an example of pausing and redoing:
+```java
+@Setter
+public class RedoWork implements Work {
+ private String name;
+ private Integer age;
+ private String sex;
+ @Override
+ public Object execute(WorkContext context) {
+  boolean nameEmpty = Checker.BeEmpty(name), ageEmpty = Checker.BeNull(age),sexEmpty = Checker.BeEmpty(sex);
+  if (nameEmpty) {
+   System.out.println("name is empty, please input it !");
+   doPause(context);
+   return null;
+  } else if (ageEmpty) {
+   System.out.println("age is empty, please input it !");
+   doPause(context);
+   return aNewWorkReport();
+  } else if (sexEmpty) {
+   System.out.println("sex is empty, please input it !");
+   doPause(context);
+   return aNewWorkReport();
+  } else {
+   System.out.println("all info are not empty, do it!");
+   return aNewWorkReport();
+  }
+ }
+}
+RedoWork redoWork = new RedoWork();
+PrintMessageWork a = new PrintMessageWork("a");
+PrintMessageWork b = new PrintMessageWork("b");
+SequentialFlow flow = aNewSequentialFlow(a,redoWork,b);
+//flow will be paused when invoke the `doPause` method and redo it when invoke the `execute` method
+flow.execute();
+redoWork.setName("Jerry");
+flow.execute();
+redoWork.setAge(18);
+flow.execute();
+redoWork.setSex("male");
+//flow will redo the work until all info are not empty
+flow.execute();
+```
 You can view more test cases in `test/java`.
 
 You can find more details about all of this in the [WIKI](docs/WIKI.md)

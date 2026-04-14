@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
 /**
  * A default workflow execution result implementation, which contains multiple work reports.
  *
@@ -80,10 +81,20 @@ public class MultipleWorkReport extends AbstractWorkReport {
     public WorkStatus getStatus() {
         if (status == WorkStatus.STOPPED) {
             return WorkStatus.STOPPED;
+        } else if (status == WorkStatus.PAUSED) {
+            return WorkStatus.PAUSED;
+        }
+        if (Checker.BeEmpty(reports)) {
+            return status;
         }
         boolean beStopped = reports.stream().anyMatch(work -> work.getStatus().equals(WorkStatus.STOPPED));
         if (beStopped) {
             return WorkStatus.STOPPED;
+        }
+
+        boolean bePaused = reports.stream().anyMatch(work -> work.getStatus().equals(WorkStatus.PAUSED));
+        if (bePaused) {
+            return WorkStatus.PAUSED;
         }
 
         if (Checker.BeEmpty(reports) && Checker.BeNotNull(status)) {
