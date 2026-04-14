@@ -259,7 +259,7 @@ flow.execute();
 redoWork.setAge(18);
 flow.execute();
 redoWork.setSex("male");
-//flow will redo the work until all info are not empty
+//flow will continue the work when all infos are not empty
 flow.execute();
 ```
 你可以在 `test/java` 中 查看更多的测试用例。
