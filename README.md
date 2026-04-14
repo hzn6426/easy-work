@@ -239,7 +239,7 @@ public class RedoWork implements Work {
   if (nameEmpty) {
    System.out.println("name is empty, please input it !");
    doPause(context);
-   return null;
+   return aNewWorkReport;
   } else if (ageEmpty) {
    System.out.println("age is empty, please input it !");
    doPause(context);
@@ -265,7 +265,7 @@ flow.execute();
 redoWork.setAge(18);
 flow.execute();
 redoWork.setSex("male");
-//flow will redo the work until all info are not empty
+//flow will continue the work when all infos are not empty
 flow.execute();
 ```
 You can view more test cases in `test/java`.
